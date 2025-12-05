@@ -80,12 +80,12 @@ class MultiHeadSelfAttention(nn.Module):
         K = K.view(B, T, self.num_heads, self.head_dim).transpose(1, 2)
         V = V.view(B, T, self.num_heads, self.head_dim).transpose(1, 2)
 
-        #scaled dot product attention
+        # scaled dot product attention
         scores = (Q @ K.transpose(-2, -1)) / math.sqrt(self.head_dim)
-        
+
         if mask is not None:
-            scores = scores + mask # masking before softmax 
-        
+            scores = scores + mask  # masking before softmax
+
         attn = torch.softmax(scores, dim=-1)
         attn = self.dropout(attn)
         out = attn @ V
@@ -111,14 +111,14 @@ class SelfAttentionLM(nn.Module):
     def forward(self, x):
         B, T = x.shape
         tok = self.token_emb(x)  # (B,T,C)
-        pos_idxs = torch.arange(T,device=x.device)
+        pos_idxs = torch.arange(T, device=x.device)
         pos = self.pos_emb(pos_idxs)[None, :, :]
         h = tok + pos  # add positional enc
 
-        #adding causal mask 
-        mask = causal_mask(T,x.device)
+        # adding causal mask
+        mask = causal_mask(T, x.device)
 
-        h = tok + pos 
+        h = tok + pos
         h = self.attn(h)
         h = self.ln(h)
 
@@ -127,7 +127,7 @@ class SelfAttentionLM(nn.Module):
 
 
 class TransformerBlock(nn.Module):
-    def __init__(self, embed_dim, num_heads, mlp_hidden,dropout=0):
+    def __init__(self, embed_dim, num_heads, mlp_hidden, dropout=0):
         super().__init__()
         self.ln1 = nn.LayerNorm(embed_dim)
         self.attn = MultiHeadSelfAttention(embed_dim, num_heads, dropout=dropout)
@@ -139,8 +139,8 @@ class TransformerBlock(nn.Module):
             nn.Linear(mlp_hidden, embed_dim),
         )
 
-    def forward(self, x,mask):
-        x = x + self.attn(self.ln1(x),mask=mask)
+    def forward(self, x, mask):
+        x = x + self.attn(self.ln1(x), mask=mask)
         x = x + self.mlp(self.ln2(x))
         return x
 
@@ -176,8 +176,8 @@ class TransformerLM(nn.Module):
         pos = self.pos_emb(pos_idxs)[None, :, :]
         h = tok + pos
 
-        #add the mask 
-        mask = causal_mask(T,x.device)
+        # add the mask
+        mask = causal_mask(T, x.device)
 
         for layer in self.layers:
             h = layer(h)
@@ -186,11 +186,11 @@ class TransformerLM(nn.Module):
         logits = self.fc(h)
         return logits
 
-def causal_mask(T,device):
-    '''
-    create a causal mask of shape (1,1,T,T)
-    '''
-    mask = torch.triu(torch.ones(T,T,device=device),diagonal=1)
-    mask = mask.masked_fill(mask==1,float('-inf'))
-    return mask.unsqueeze(0).unsqueeze(0)
 
+def causal_mask(T, device):
+    """
+    create a causal mask of shape (1,1,T,T)
+    """
+    mask = torch.triu(torch.ones(T, T, device=device), diagonal=1)
+    mask = mask.masked_fill(mask == 1, float("-inf"))
+    return mask.unsqueeze(0).unsqueeze(0)

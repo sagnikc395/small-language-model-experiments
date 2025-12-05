@@ -14,15 +14,20 @@ from tiny_shakespeare_experiment import SelfAttentionLM
 from tiny_shakespeare_experiment import TransformerLM
 
 
-# data paths for shakespeare
+# data paths
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+REPORT_DIR = os.path.join(CURRENT_DIR,"..","report_src")
+DATASETS_DIR = os.path.join(CURRENT_DIR,"..","datasets")
+SHAKESPEARE_DATA_PATH = os.path.join(DATASETS_DIR, "tiny_shakespeare")
 
-SHAKESPEARE_DATA_PATH = os.path.join("datasets", "tiny_shakespeare")
+#ensure datasets exist(safety!)
+if not os.path.exists(SHAKESPEARE_DATA_PATH):
+    raise FileNotFoundError(f"Cannot find dataset at {SHAKESPEARE_DATA_PATH}")
 
-
-def load_shakespeare_data(SHAKESPEARE_DATA_PATH):
-    train_file = os.path.join(SHAKESPEARE_DATA_PATH, "train.txt")
-    valid_file = os.path.join(SHAKESPEARE_DATA_PATH, "valid.txt")
-    test_file = os.path.join(SHAKESPEARE_DATA_PATH, "test.txt")
+def load_shakespeare_data(dataset_path):
+    train_file = os.path.join(dataset_path, "train.txt")
+    valid_file = os.path.join(dataset_path, "valid.txt")
+    test_file = os.path.join(dataset_path, "test.txt")
     return train_file, valid_file, test_file
 
 
@@ -119,20 +124,24 @@ def run_experiment_tiny_shakespeare(
             )
 
         case _:
-            raise ValueError("Model type unknown!")
+            raise ValueError("Unknown model_type: {model_type}")
 
     # train
-    print("\nTraining Model: {model_type}")
+    print("\n[INFO] Started training for: {model_type}")
     train_loss, valid_loss = train_model(model, train_loader, valid_loader, epochs)
 
     # test the log likelihood
     test_ll = compute_loss(model, test_loader, nn.CrossEntropyLoss())
-    print(f"Test Log Likelihood: {test_ll:.4f}")
+    print(f"[RESULT] Test Log Likelihood: {test_ll:.4f}")
 
     # generation
-    print(generate(model, tokenizer, "HAMLET: ", length=100, context_len=context_len))
+    sample = generate(model, tokenizer, "HAMLET: ", length=100, context_len=context_len)
+
+    print("\n[GENERATION]")
+    print(sample)
 
     # plot the results
+    plt.figure() 
     plt.plot(train_loss, label="train")
     plt.plot(valid_loss, label="valid")
     plt.legend()

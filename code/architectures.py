@@ -115,6 +115,9 @@ class SelfAttentionLM(nn.Module):
         pos = self.pos_emb(pos_idxs)[None, :, :]
         h = tok + pos  # add positional enc
 
+        #adding causal mask 
+        mask = causal_mask(T,x.device)
+
         h = tok + pos 
         h = self.attn(h)
         h = self.ln(h)

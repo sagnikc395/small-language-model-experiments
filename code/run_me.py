@@ -1,76 +1,29 @@
 import os
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader, Dataset
 
 import matplotlib.pyplot as plt
+from torch.utils.data import DataLoader
 
 
-SHAKESPEARE_DATA = "datasets/tiny_shakespeare"
-S_TRAIN_FILE = os.path.join(SHAKESPEARE_DATA, "train.txt")
-S_VALID_FILE = os.path.join(SHAKESPEARE_DATA, "valid.txt")
-S_TEST_FILE = os.path.join(SHAKESPEARE_DATA, "test.txt")
+from code.evaluation import DEVICE, compute_loss, generate
+from code.tokenization import CharDataset, CharTokenizer
+from tiny_shakespeare_experiment import LinearRegressionModel
+from tiny_shakespeare_experiment import MLP
+from tiny_shakespeare_experiment import SelfAttentionLM
+from tiny_shakespeare_experiment import TransformerLM
 
 
-if torch.backends.mps.is_available():
-    DEVICE = "mps"
-else:
-    DEVICE = "cpu"
+# data paths for shakespeare
+
+SHAKESPEARE_DATA_PATH = os.path.join("datasets", "tiny_shakespeare")
 
 
-# dataset and tokenizer
-class CharTokenizer:
-    def __init__(self, text):
-        chars = sorted(list(set(text)))
-        self.stoi = {c: i for i, c in enumerate(chars)}
-        self.itos = {i: c for c, i in enumerate(chars)}
-        self.vocab_size = len(chars)
-
-    def encode(self, s):
-        return [self.stoi[c] for c in s]
-
-    def decode(self, ids):
-        return "".join([self.itos[i] for i in ids])  # type: ignore
-
-
-class CharDataset(Dataset):
-    def __init__(self, text, tokenizer, context_len):
-        self.data = torch.tensor(tokenizer.encode(text), dtype=torch.long)
-        self.context_len = context_len
-
-    def __len__(self):
-        return len(self.data) - self.context_len
-
-    def __getitem__(self, idx):
-        x = self.data[idx : idx + self.context_len]
-        y = self.data[idx + 1 : idx + 1 + self.context_len]
-        return x, y
-
-
-# eval helpers
-def compute_loss(model, loader, criterion):
-    model.eval()
-    losses = []
-    with torch.no_grad():
-        for x, y in loader:
-            x, y = x.to(DEVICE), y.to(DEVICE)
-            logits = model(x)
-            loss = criterion(logits.view(-1, logits.size(-1)), y.view(-1))
-            losses.append(loss.item())
-    return sum(losses) / len(losses)
-
-
-def generate(model, tokenizer, context, context_len, length=100):
-    model.eval()
-    ids = tokenizer.encode(context)
-    x = torch.tensor(ids, device=DEVICE).unsqueeze(0)
-
-    for _ in range(length):
-        logits = model(x[:, -context_len:])
-        next_token = torch.argmax(logits[:, -1, :], dim=-1)
-        x = torch.cat([x, next_token.unsqueeze(0)], dim=1)
-
-    return tokenizer.decode(x[0].tolist())
+def load_shakespeare_data(SHAKESPEARE_DATA_PATH):
+    train_file = os.path.join(SHAKESPEARE_DATA_PATH, "train.txt")
+    valid_file = os.path.join(SHAKESPEARE_DATA_PATH, "valid.txt")
+    test_file = os.path.join(SHAKESPEARE_DATA_PATH, "test.txt")
+    return train_file, valid_file, test_file
 
 
 # training loop
@@ -82,6 +35,7 @@ def train_model(model, train_loader, valid_loader, epochs=5, lr=1e-3):
     train_losses = []
     valid_losses = []
 
+    print(f"\n[INFO] Training Model {model.__class__.__name__}")
     for ep in range(epochs):
         model.train()
         batch_losses = []
@@ -110,10 +64,83 @@ def train_model(model, train_loader, valid_loader, epochs=5, lr=1e-3):
     return train_losses, valid_losses
 
 
-def main():
+def run_experiment_tiny_shakespeare(
+    model_type="transformer", context_len=128, batch_size=32, epochs=3
+):
+    print("===== {DELIVERABLE 1} =====")
     print("Training for Tiny Shakespare Experiment")
     print(f"Selected device: {DEVICE}")
 
+    train_file, valid_file, test_file = load_shakespeare_data(SHAKESPEARE_DATA_PATH)
+
+    with open(train_file, "r", encoding="utf-8") as f:
+        train_text = f.read()
+    with open(valid_file, "r", encoding="utf-8") as f:
+        valid_text = f.read()
+
+    with open(test_file, "r", encoding="utf-8") as f:
+        test_text = f.read()
+
+    # tokenizers and datasets
+    tokenizer = CharTokenizer(train_text)
+
+    # load the dataset into the character dataset first to store it
+    # into embeddings fashion
+    train_ds = CharDataset(train_text, tokenizer, context_len)
+    valid_ds = CharDataset(valid_text, tokenizer, context_len)
+    test_ds = CharDataset(test_text, tokenizer, context_len)
+
+    # loader the data using the data loader
+    train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True)
+    valid_loader = DataLoader(valid_ds, batch_size=batch_size)
+    test_loader = DataLoader(test_ds, batch_size=batch_size)
+
+    match model_type:
+        case "linear":
+            model = LinearRegressionModel(tokenizer.vocab_size, context_len=context_len)
+        case "mlp":
+            model = MLP(tokenizer.vocab_size, context_len, [512, 512, 512])
+        case "attention":
+            model = SelfAttentionLM(
+                tokenizer.vocab_size,
+                context_len=context_len,
+                embed_dim=128,
+                num_heads=4,
+            )
+
+        case "transformer":
+            model = TransformerLM(
+                tokenizer.vocab_size,
+                context_len=context_len,
+                embed_dim=128,
+                num_heads=4,
+                mlp_hidden=256,
+                num_layers=3,
+            )
+
+        case _:
+            raise ValueError("Model type unknown!")
+
+    # train
+    print("\nTraining Model: {model_type}")
+    train_loss, valid_loss = train_model(model, train_loader, valid_loader, epochs)
+
+    # test the log likelihood
+    test_ll = compute_loss(model, test_loader, nn.CrossEntropyLoss())
+    print(f"Test Log Likelihood: {test_ll:.4f}")
+
+    # generation
+    print(generate(model, tokenizer, "HAMLET: ", length=100, context_len=context_len))
+
+    # plot the results
+    plt.plot(train_loss, label="train")
+    plt.plot(valid_loss, label="valid")
+    plt.legend()
+    plt.savefig(f"Deliverable1_{model_type}_loss_curve.png")
+    plt.close()
+
+    return model, test_ll
+
 
 if __name__ == "__main__":
-    main()
+    run_experiment_tiny_shakespeare()

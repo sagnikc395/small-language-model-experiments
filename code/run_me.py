@@ -12,16 +12,11 @@ S_VALID_FILE = os.path.join(SHAKESPEARE_DATA,"valid.txt")
 S_TEST_FILE = os.path.join(SHAKESPEARE_DATA,"test.txt")
 
 
-def is_mlu_available():
-    """Returns a bool indicating if MLU is currently available."""
-    return hasattr(torch, 'is_mlu_available') and torch.is_mlu_available()
-
-if torch.cuda.is_available():
-    DEVICE = "cuda"
-elif is_mlu_available():
-    DEVICE = "mlu"
+if torch.backends.mps.is_available():
+    DEVICE = "mps"
 else:
     DEVICE = "cpu"
+
 
 # dataset and tokenizer 
 class CharTokenizer:
@@ -74,6 +69,43 @@ def generate(model,tokenizer,context,length=100):
         x = torch.cat([x,next_token.unsqueeze(0)],dim=1)
     
     return tokenizer.decode(x[0].tolist())
+
+# training loop 
+def train_model(model,train_loader,valid_loader,epochs=5,lr=1e-3):
+    model = model.to(DEVICE)
+    optimizer = torch.optim.Adam(model.parameters(),lr=lr)
+    criterion = nn.CrossEntropyLoss()
+
+    train_losses = []
+    valid_losses = []
+
+    for ep in range(epochs):
+        model.train()
+        batch_losses = [] 
+
+
+        for x,y in train_loader:
+            x ,y = x.to(DEVICE), y.to(DEVICE)
+            optimizer.zero_grad()
+            logits = model(x)
+            loss = criterion(logits.view(-1,logits.size(-1)), y.view(-1))
+            loss.backward()
+            optimizer.step()
+
+            batch_losses.append(loss.item())
+
+        #average the train loss over all the batches this epoch 
+        epoch_train_loss = sum(batch_losses) / len(batch_losses)
+        epoch_valid_loss = compute_loss(model,valid_loader,criterion)
+
+        train_losses.append(epoch_train_loss)
+        valid_losses.append(epoch_valid_loss)
+
+        print(
+            f"Epoch {ep+1}/{epochs} | train_loss={epoch_train_loss:.4f} | valid_loss={epoch_valid_loss:.4f}"
+        )
+
+    return train_losses,valid_losses
 
 
 

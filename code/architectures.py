@@ -180,7 +180,7 @@ class TransformerLM(nn.Module):
         mask = causal_mask(T, x.device)
 
         for layer in self.layers:
-            h = layer(h)
+            h = layer(h,mask=mask)
 
         h = self.ln(h)
         logits = self.fc(h)

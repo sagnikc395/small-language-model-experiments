@@ -173,9 +173,21 @@ class TransformerLM(nn.Module):
         pos = self.pos_emb(pos_idxs)[None, :, :]
         h = tok + pos
 
+        #add the mask 
+        mask = causal_mask(T,x.device)
+
         for layer in self.layers:
             h = layer(h)
 
         h = self.ln(h)
         logits = self.fc(h)
         return logits
+
+def causal_mask(T,device):
+    '''
+    create a causal mask of shape (1,1,T,T)
+    '''
+    mask = torch.triu(torch.ones(T,T,device=device),diagonal=1)
+    mask = mask.masked_fill(mask==1,float('-inf'))
+    return mask.unsqueeze(0).unsqueeze(0)
+

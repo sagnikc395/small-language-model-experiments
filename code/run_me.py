@@ -6,12 +6,12 @@ import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 
 
-from code.evaluation import DEVICE, compute_loss, generate
-from code.tokenization import CharDataset, CharTokenizer
-from tiny_shakespeare_experiment import LinearRegressionModel
-from tiny_shakespeare_experiment import MLP
-from tiny_shakespeare_experiment import SelfAttentionLM
-from tiny_shakespeare_experiment import TransformerLM
+from evaluation import DEVICE, compute_loss, generate
+from tokenization import CharDataset, CharTokenizer
+from architectures import LinearRegressionModel
+from architectures import MLP
+from architectures import SelfAttentionLM
+from architectures import TransformerLM
 
 
 # data paths

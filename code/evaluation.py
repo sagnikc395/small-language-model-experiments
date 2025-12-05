@@ -29,3 +29,9 @@ def generate(model, tokenizer, context, context_len, length=100):
         x = torch.cat([x, next_token.unsqueeze(0)], dim=1)
 
     return tokenizer.decode(x[0].tolist())
+
+def compute_training_flops(model,train_loader,context_len,epochs):
+    n_params = sum(p.numel() for p in model.parameters())
+    total_tokens = len(train_loader.dataset) * context_len 
+    flops_per_epoch  = 2 * n_params * total_tokens
+    return flops_per_epoch * epochs 

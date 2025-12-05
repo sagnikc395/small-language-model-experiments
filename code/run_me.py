@@ -6,20 +6,23 @@ import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 
 
-from evaluation import DEVICE, compute_loss, compute_training_flops, generate, generate_words
+from evaluation import (
+    DEVICE,
+    compute_loss,
+    compute_training_flops,
+    generate,
+    generate_words,
+)
 from tokenization import CharDataset, CharTokenizer, WordDataset, WordTokenizer
-from architectures import LinearRegressionModel
-from architectures import MLP
-from architectures import SelfAttentionLM
-from architectures import TransformerLM
+from architectures import LinearRegressionModel, MLP, SelfAttentionLM, TransformerLM
 
 
 # data paths
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPORT_DIR = os.path.join(CURRENT_DIR, "..", "report_src")
 DATASETS_DIR = os.path.join(CURRENT_DIR, "..", "datasets")
-SHAKESPEARE_DATA_PATH = os.path.join(DATASETS_DIR, "tiny_shakespeare")
 
+SHAKESPEARE_DATA_PATH = os.path.join(DATASETS_DIR, "tiny_shakespeare")
 PTB_DIR = os.path.join(DATASETS_DIR, "ptb")
 WT2_DIR = os.path.join(DATASETS_DIR, "wikitext2")
 
@@ -27,6 +30,12 @@ WT2_DIR = os.path.join(DATASETS_DIR, "wikitext2")
 # ensure datasets exist(safety!)
 if not os.path.exists(SHAKESPEARE_DATA_PATH):
     raise FileNotFoundError(f"Cannot find dataset at {SHAKESPEARE_DATA_PATH}")
+
+if not os.path.exists(PTB_DIR):
+    raise FileNotFoundError(f"Cannot find dataset at {PTB_DIR}")
+
+if not os.path.exists(WT2_DIR):
+    raise FileNotFoundError(f"Cannot find dataset at {WT2_DIR}")
 
 
 def load_shakespeare_data(dataset_path):
@@ -41,7 +50,7 @@ def load_shakespeare_data(dataset_path):
     with open(test_file, "r", encoding="utf-8") as f:
         test_text = f.read()
 
-    return (train_text, valid_text, test_text)
+    return train_text, valid_text, test_text
 
 
 def load_word_level_data(dataset_dir):
@@ -56,7 +65,7 @@ def load_word_level_data(dataset_dir):
     with open(test_file, "r", encoding="utf-8") as f:
         test_text = f.read()
 
-    return (train_text, valid_text, test_text)
+    return train_text, valid_text, test_text
 
 
 # training loop
@@ -96,7 +105,7 @@ def train_model(model, train_loader, valid_loader, epochs=5, lr=1e-3):
 
     return train_losses, valid_losses
 
-
+#deliverable 1 
 def run_experiment_tiny_shakespeare(
     model_type="transformer", context_len=128, batch_size=32, epochs=3
 ):
@@ -104,6 +113,7 @@ def run_experiment_tiny_shakespeare(
     print("Training for Tiny Shakespare Experiment")
     print(f"Selected device: {DEVICE}")
 
+    # load the text
     train_text, valid_text, test_text = load_shakespeare_data(SHAKESPEARE_DATA_PATH)
 
     # tokenizers and datasets
@@ -164,13 +174,14 @@ def run_experiment_tiny_shakespeare(
     plt.figure()
     plt.plot(train_loss, label="train")
     plt.plot(valid_loss, label="valid")
-    plt.legend()
-    plt.savefig(f"Deliverable1_{model_type}_loss_curve.png")
+    plt.title(f"Tiny Shakespeare - {model_type}")
+    plt.savefig(os.path.join(REPORT_DIR, f"Deliverable1_{model_type}_loss_curve.png"))
     plt.close()
 
     return model, test_ll
 
 
+# deliverable 2 
 def run_word_level_experiment(
     dataset_name: str,
     dataset_dir: str,
@@ -178,7 +189,7 @@ def run_word_level_experiment(
     context_len: int = 64,
     batch_size: int = 32,
     epochs: int = 5,
-    vocab_size: int | None = 20000,   # adjust as needed
+    vocab_size: int | None = 20000,  # adjust as needed
 ):
     print(f"\n===== [DELIVERABLE 2] {dataset_name} word-level modeling =====")
     print(f"Device: {DEVICE}, context_len={context_len}, batch_size={batch_size}")
@@ -192,17 +203,17 @@ def run_word_level_experiment(
     # 3) Datasets + loaders
     train_ds = WordDataset(train_text, tokenizer, context_len)
     valid_ds = WordDataset(valid_text, tokenizer, context_len)
-    test_ds  = WordDataset(test_text,  tokenizer, context_len)
+    test_ds = WordDataset(test_text, tokenizer, context_len)
 
     train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True)
     valid_loader = DataLoader(valid_ds, batch_size=batch_size)
-    test_loader  = DataLoader(test_ds,  batch_size=batch_size)
+    test_loader = DataLoader(test_ds, batch_size=batch_size)
 
     # 4) Build best model architecture from Deliverable 1
     model = TransformerLM(
         vocab_size=tokenizer.vocab_size,
         context_len=context_len,
-        embed_dim=256,    # plug in your best hyperparams from Deliverable 1
+        embed_dim=256,  # plug in your best hyperparams from Deliverable 1
         num_heads=4,
         mlp_hidden=512,
         num_layers=4,
@@ -233,7 +244,6 @@ def run_word_level_experiment(
 
     # 9) LL vs FLOPs plot – for Deliverable 2, usually 1 point is boring, so
     #    you can run multiple configs and log multiple (flops, test_ll) points.
-    #    Here I'll just save this single point; you can extend to a sweep.
     plt.figure()
     plt.scatter([flops], [test_ll])
     plt.xscale("log")
@@ -241,7 +251,9 @@ def run_word_level_experiment(
     plt.ylabel("Test Log-Likelihood")
     plt.title(f"{dataset_name} – LL vs FLOPs")
     plt.tight_layout()
-    save_path_ll_flops = os.path.join(REPORT_DIR, f"{dataset_name}_word_ll_vs_flops.png")
+    save_path_ll_flops = os.path.join(
+        REPORT_DIR, f"{dataset_name}_word_ll_vs_flops.png"
+    )
     plt.savefig(save_path_ll_flops)
     plt.close()
 
@@ -267,4 +279,33 @@ def run_word_level_experiment(
 
 
 if __name__ == "__main__":
+    # deliverable 1
     run_experiment_tiny_shakespeare()
+
+    # deliverable 2
+    ptb_results = run_word_level_experiment(
+        dataset_name="PTB",
+        dataset_dir=PTB_DIR,
+        prompt="the school announced that",
+        context_len=64,
+        batch_size=32,
+        epochs=5,
+        vocab_size=10000,  # typical PTB vocab size
+    )
+
+    # Deliverable 2: WikiText-2
+    wt2_results = run_word_level_experiment(
+        dataset_name="WikiText2",
+        dataset_dir=WT2_DIR,
+        prompt="The history of machine learning begins",
+        context_len=64,
+        batch_size=32,
+        epochs=5,
+        vocab_size=20000,
+    )
+
+    # optionally: dump generations to a text file for your report
+    with open(os.path.join(REPORT_DIR, "deliverable2_generations.txt"), "w") as f:
+        for res in (ptb_results, wt2_results):
+            f.write(f"=== {res['dataset']} ===\n")
+            f.write(res["generation"] + "\n\n")

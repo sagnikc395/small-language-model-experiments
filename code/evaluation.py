@@ -37,21 +37,22 @@ def compute_training_flops(model, train_loader, context_len, epochs):
     flops_per_epoch = 2 * n_params * total_tokens
     return flops_per_epoch * epochs
 
-#our character level works on characters, for word-level , seperate helper
-def generate_words(model,tokenizer,prompt,context_len,max_new_words):
+
+# our character level works on characters, for word-level , seperate helper
+def generate_words(model, tokenizer, prompt, context_len, max_new_words):
     model.eval()
 
-    #encode the prompt to ids
+    # encode the prompt to ids
     prompt_ids = tokenizer.encode(prompt)
-    x = torch.tensor(prompt_ids,device=DEVICE).unsqueeze(0) # (1,T0)
+    x = torch.tensor(prompt_ids, device=DEVICE).unsqueeze(0)  # (1,T0)
 
     for _ in range(max_new_words):
-        x_cond = x[:,-context_len:] # crop to the context_len
+        x_cond = x[:, -context_len:]  # crop to the context_len
         logits = model(x_cond)
-        next_token_logits = logits[:,-1,:]
-        next_token = torch.argmax(next_token_logits,dim=-1)
+        next_token_logits = logits[:, -1, :]
+        next_token = torch.argmax(next_token_logits, dim=-1)
 
-        x = torch.cat([x,next_token.unsqueeze(0)],dim=1)
-    
+        x = torch.cat([x, next_token.unsqueeze(0)], dim=1)
+
     ids = x[0].tolist()
     return tokenizer.decode(ids)

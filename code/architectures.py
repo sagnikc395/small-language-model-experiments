@@ -80,10 +80,15 @@ class MultiHeadSelfAttention(nn.Module):
         K = K.view(B, T, self.num_heads, self.head_dim).transpose(1, 2)
         V = V.view(B, T, self.num_heads, self.head_dim).transpose(1, 2)
 
+        #scaled dot product attention
         scores = (Q @ K.transpose(-2, -1)) / math.sqrt(self.head_dim)
+        
+        if mask is not None:
+            scores = scores + mask # masking before softmax 
+        
         attn = torch.softmax(scores, dim=-1)
+        attn = self.dropout(attn)
         out = attn @ V
-
         out = out.transpose(1, 2).contiguous().view(B, T, C)
         return self.out_proj(out)
 
@@ -91,6 +96,10 @@ class MultiHeadSelfAttention(nn.Module):
 class SelfAttentionLM(nn.Module):
     def __init__(self, vocab_size, context_len, embed_dim=128, num_heads=4):
         super().__init__()
+        self.vocab_size = vocab_size
+        self.context_len = context_len
+        self.embed_dim = embed_dim
+
         self.token_emb = nn.Embedding(vocab_size, embed_dim)
         self.pos_emb = nn.Embedding(context_len, embed_dim)
 
@@ -102,9 +111,11 @@ class SelfAttentionLM(nn.Module):
     def forward(self, x):
         B, T = x.shape
         tok = self.token_emb(x)  # (B,T,C)
-        pos = self.pos_emb(torch.arange(T, device=x.device))[None, :, :]
+        pos_idxs = torch.arange(T,device=x.device)
+        pos = self.pos_emb(pos_idxs)[None, :, :]
         h = tok + pos  # add positional enc
 
+        h = tok + pos 
         h = self.attn(h)
         h = self.ln(h)
 
@@ -113,10 +124,10 @@ class SelfAttentionLM(nn.Module):
 
 
 class TransformerBlock(nn.Module):
-    def __init__(self, embed_dim, num_heads, mlp_hidden):
+    def __init__(self, embed_dim, num_heads, mlp_hidden,dropout=0):
         super().__init__()
         self.ln1 = nn.LayerNorm(embed_dim)
-        self.attn = MultiHeadSelfAttention(embed_dim, num_heads, dropout=0)
+        self.attn = MultiHeadSelfAttention(embed_dim, num_heads, dropout=dropout)
         self.ln2 = nn.LayerNorm(embed_dim)
 
         self.mlp = nn.Sequential(
@@ -125,8 +136,8 @@ class TransformerBlock(nn.Module):
             nn.Linear(mlp_hidden, embed_dim),
         )
 
-    def forward(self, x):
-        x = x + self.attn(self.ln1(x))
+    def forward(self, x,mask):
+        x = x + self.attn(self.ln1(x),mask=mask)
         x = x + self.mlp(self.ln2(x))
         return x
 
@@ -158,7 +169,8 @@ class TransformerLM(nn.Module):
     def forward(self, x):
         B, T = x.shape
         tok = self.token_emb(x)
-        pos = self.pos_emb(torch.arange(T, device=x.device))[None, :, :]
+        pos_idxs = torch.arange(T, device=x.device)
+        pos = self.pos_emb(pos_idxs)[None, :, :]
         h = tok + pos
 
         for layer in self.layers:

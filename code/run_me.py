@@ -105,7 +105,8 @@ def train_model(model, train_loader, valid_loader, epochs=5, lr=1e-3):
 
     return train_losses, valid_losses
 
-#deliverable 1 
+
+# deliverable 1
 def run_experiment_tiny_shakespeare(
     model_type="transformer", context_len=128, batch_size=32, epochs=3
 ):
@@ -181,7 +182,7 @@ def run_experiment_tiny_shakespeare(
     return model, test_ll
 
 
-# deliverable 2 
+# deliverable 2
 def run_word_level_experiment(
     dataset_name: str,
     dataset_dir: str,

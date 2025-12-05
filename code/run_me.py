@@ -16,19 +16,47 @@ from architectures import TransformerLM
 
 # data paths
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-REPORT_DIR = os.path.join(CURRENT_DIR,"..","report_src")
-DATASETS_DIR = os.path.join(CURRENT_DIR,"..","datasets")
+REPORT_DIR = os.path.join(CURRENT_DIR, "..", "report_src")
+DATASETS_DIR = os.path.join(CURRENT_DIR, "..", "datasets")
 SHAKESPEARE_DATA_PATH = os.path.join(DATASETS_DIR, "tiny_shakespeare")
 
-#ensure datasets exist(safety!)
+PTB_DIR = os.path.join(DATASETS_DIR, "ptb")
+WT2_DIR = os.path.join(DATASETS_DIR, "wikitext2")
+
+
+# ensure datasets exist(safety!)
 if not os.path.exists(SHAKESPEARE_DATA_PATH):
     raise FileNotFoundError(f"Cannot find dataset at {SHAKESPEARE_DATA_PATH}")
+
 
 def load_shakespeare_data(dataset_path):
     train_file = os.path.join(dataset_path, "train.txt")
     valid_file = os.path.join(dataset_path, "valid.txt")
     test_file = os.path.join(dataset_path, "test.txt")
-    return train_file, valid_file, test_file
+
+    with open(train_file, "r", encoding="utf-8") as f:
+        train_text = f.read()
+    with open(valid_file, "r", encoding="utf-8") as f:
+        valid_text = f.read()
+    with open(test_file, "r", encoding="utf-8") as f:
+        test_text = f.read()
+
+    return (train_text, valid_text, test_text)
+
+
+def load_word_level_data(dataset_dir):
+    train_file = os.path.join(dataset_dir, "train.txt")
+    valid_file = os.path.join(dataset_dir, "valid.txt")
+    test_file = os.path.join(dataset_dir, "test.txt")
+
+    with open(train_file, "r", encoding="utf-8") as f:
+        train_text = f.read()
+    with open(valid_file, "r", encoding="utf-8") as f:
+        valid_text = f.read()
+    with open(test_file, "r", encoding="utf-8") as f:
+        test_text = f.read()
+
+    return (train_text, valid_text, test_text)
 
 
 # training loop
@@ -76,15 +104,7 @@ def run_experiment_tiny_shakespeare(
     print("Training for Tiny Shakespare Experiment")
     print(f"Selected device: {DEVICE}")
 
-    train_file, valid_file, test_file = load_shakespeare_data(SHAKESPEARE_DATA_PATH)
-
-    with open(train_file, "r", encoding="utf-8") as f:
-        train_text = f.read()
-    with open(valid_file, "r", encoding="utf-8") as f:
-        valid_text = f.read()
-
-    with open(test_file, "r", encoding="utf-8") as f:
-        test_text = f.read()
+    train_text, valid_text, test_text = load_shakespeare_data(SHAKESPEARE_DATA_PATH)
 
     # tokenizers and datasets
     tokenizer = CharTokenizer(train_text)
@@ -141,7 +161,7 @@ def run_experiment_tiny_shakespeare(
     print(sample)
 
     # plot the results
-    plt.figure() 
+    plt.figure()
     plt.plot(train_loss, label="train")
     plt.plot(valid_loss, label="valid")
     plt.legend()

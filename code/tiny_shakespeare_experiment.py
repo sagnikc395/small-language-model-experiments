@@ -5,35 +5,49 @@ import torch.nn.functional as F
 
 
 class LinearRegressionModel(nn.Module):
-    def __init__(self, input_dim, num_classes):
+    def __init__(self, vocab_size, context_len):
         super().__init__()
-        self.linear = nn.Linear(input_dim, num_classes)
+        self.vocab_size = vocab_size
+        self.context_len = context_len
+        self.linear = nn.Linear(context_len * vocab_size, context_len * vocab_size)
 
     def forward(self, x):
-        return self.linear(x)
+        B,T  = x.shape
+        assert T == self.context_len
+
+        # convert the tokens to one hot encoding 
+        onehot = F.one_hot(x,num_classes=self.vocab_size).float()
+        flat = onehot.view(B,-1)
+        logits = self.linear(flat).view(B,T,self.vocab_size)
+        return logits 
 
 
 class MLP(nn.Module):
-    def __init__(self, input_dim, h1, h2, output_dim, dropout=0.1):
+    def __init__(self,vocab_size,context_len,hidden_dims=[512,512,512]):
         super().__init__()
+        self.vocab_size = vocab_size
+        self.context_len = context_len
 
-        self.fc1 = nn.Linear(input_dim, h1)
-        self.fc2 = nn.Linear(h1, h2)
-        self.fc3 = nn.Linear(h2, output_dim)
+        layers = []
+        input_dim = context_len * vocab_size
 
-        self.relu = nn.ReLU()
-        self.dropout = nn.Dropout(dropout)
+        for h in hidden_dims:
+            layers.append(nn.Linear(input_dim,h))
+            layers.append(nn.ReLU())
+            input_dim = h 
 
-        # xavier initialization
-        nn.init.xavier_uniform_(self.fc1.weight)
-        nn.init.xavier_uniform_(self.fc2.weight)
-        nn.init.xavier_uniform_(self.fc3.weight)
+        layers.append(nn.Linear(input_dim,context_len * vocab_size))
 
-    def forward(self, x):
-        x = self.dropout(self.relu(self.fc1(x)))
-        x = self.dropout(self.relu(self.fc2(x)))
-        x = self.fc3(x)
-        return x
+        self.net = nn.Sequential(*layers)
+
+    def forward(self,x):
+        B,T = x.shape 
+        onehot = F.one_hot(x,num_classes=self.vocab_size).float()
+        flat = onehot.view(B,-1)
+        out = self.net(flat)
+        return out.view(B,T,self.vocab_size)
+    
+
 
 
 class MultiHeadSelfAttention(nn.Module):
@@ -68,71 +82,78 @@ class MultiHeadSelfAttention(nn.Module):
         K = K.view(B, T, self.num_heads, self.head_dim).transpose(1, 2)
         V = V.view(B, T, self.num_heads, self.head_dim).transpose(1, 2)
 
-        # scaled dot-product attention scores
-        scores = torch.matmul(Q, K.transpose(-2, -1)) / math.sqrt(self.head_dim)
+        scores = (Q @ K.transpose(-2,-1)) / math.sqrt(self.head_dim)
+        attn = torch.softmax(scores,dim=-1)
+        out= attn @ V 
 
-        if mask is not None:
-            scores = scores + mask
-
-        attn = F.softmax(scores, dim=-1)
-        attn = self.dropout(attn)
-
-        # output -> (B,num_heads,T,head_dim)
-        context = torch.matmul(attn, V)
-
-        # concatenate heads
-        context = context.transpose(1, 2).contiguous().view(B, T, C)
-
-        # final projections
-        out = self.out_proj(context)
-        return out
-
-
-# MHA + FFN + LayerNorm + Residual
-class TransformerBlock(nn.Module):
-    def __init__(self, embed_dim, num_heads, ff_hidden_dim, dropout):
+        out = out.transpose(1,2).contiguous().view(B,T,C)
+        return self.out_proj(out)
+    
+class SelfAttentionLM(nn.Module):
+    def __init__(self, vocab_size, context_len, embed_dim=128, num_heads=4):
         super().__init__()
+        self.token_emb = nn.Embedding(vocab_size, embed_dim)
+        self.pos_emb = nn.Embedding(context_len, embed_dim)
 
-        self.attn = MultiHeadSelfAttention(embed_dim, num_heads, dropout=dropout)
-        self.ln1 = nn.LayerNorm(embed_dim)
+        self.attn = MultiHeadSelfAttention(embed_dim, num_heads,dropout=0)
+        self.ln = nn.LayerNorm(embed_dim)
 
-        self.ff = nn.Sequential(
-            nn.Linear(embed_dim, ff_hidden_dim),
-            nn.ReLU(),
-            nn.Dropout(dropout),
-            nn.Linear(ff_hidden_dim, embed_dim),
-        )
-
-        self.ln2 = nn.LayerNorm(embed_dim)
-        self.dropout = nn.Dropout(dropout)
-
-    def forward(self, x, mask):
-        # pre-norm + attention
-        attn_out = self.attn(self.ln1(x), mask=mask)
-        x = x + self.dropout(attn_out)
-
-        # pre-norm + ffn
-        ff_out = self.ff(self.ln2(x))
-        x = x + self.dropout(ff_out)
-
-        return x
-
-
-class PositionalEncoding(nn.Module):
-    def __init__(self, embed_dim, max_len):
-        super().__init__()
-
-        self.pe = torch.zeros(max_len, embed_dim)
-        self.position = torch.arange(0, max_len, dtype=torch.float32).unsqueeze(1)
-
-        self.div_term = torch.exp(
-            torch.arange(0, embed_dim, 2, dtype=torch.float32)
-            * (-math.log(10000.0) / embed_dim)
-        )
-
-        self.pe[:, 0::2] = torch.sin(self.position * self.div_term)
-        self.pe[:, 1::2] = torch.cos(self.position * self.div_term)
+        self.fc = nn.Linear(embed_dim, vocab_size)
 
     def forward(self, x):
-        T = x.size(1)
-        return x + self.pe[:, :T, :]
+        B, T = x.shape
+        tok = self.token_emb(x)                        # (B,T,C)
+        pos = self.pos_emb(torch.arange(T, device=x.device))[None, :, :]
+        h = tok + pos                                   # add positional enc
+
+        h = self.attn(h)
+        h = self.ln(h)
+
+        logits = self.fc(h)
+        return logits
+
+class TransformerBlock(nn.Module):
+    def __init__(self, embed_dim,num_heads,mlp_hidden):
+        super().__init__()
+        self.ln1 = nn.LayerNorm(embed_dim)
+        self.attn = MultiHeadSelfAttention(embed_dim,num_heads,dropout=0)
+        self.ln2 = nn.LayerNorm(embed_dim)
+
+        self.mlp = nn.Sequential(
+            nn.Linear(embed_dim,mlp_hidden),
+            nn.ReLU(),
+            nn.Linear(mlp_hidden,embed_dim)
+        )
+
+    def forward(self,x):
+        x = x + self.attn(self.ln1(x))
+        x = x + self.mlp(self.ln2(x))
+        return x 
+    
+class TransformerLM(nn.Module):
+    def __init__(self,vocab_size,context_len,embed_dim=128,num_heads=4,mlp_hidden=256,num_layers=3):
+        super().__init__()
+        self.token_emb = nn.Embedding(vocab_size,embed_dim)
+        self.pos_emb = nn.Embedding(context_len,embed_dim)
+
+        self.layers = nn.ModuleList([
+            TransformerBlock(embed_dim,num_heads,mlp_hidden)
+        for _ in range(num_layers)] )
+        
+        self.ln = nn.LayerNorm(embed_dim)
+        self.fc = nn.Linear(embed_dim,vocab_size)
+
+    def forward(self,x):
+        B,T = x.shape
+        tok = self.token_emb(x)
+        pos = self.pos_emb(torch.arange(T,device=x.device))[None,:,:]
+        h = tok + pos 
+
+        for layer in self.layers:
+            h = layer(h)
+
+        h = self.ln(h)
+        logits = self.fc(h)
+        return logits 
+    
+    

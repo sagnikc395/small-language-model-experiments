@@ -26,11 +26,13 @@ from tokenization import CharTokenizer, CharDataset, WordTokenizer, WordDataset
 
 from architectures import LinearRegressionModel, MLP, SelfAttentionLM, TransformerLM
 
-from config import EXPERIMENT_CONFIG_DELIVERABLE_1
+from config import EXPERIMENT_CONFIG_DELIVERABLE_1, EXPERIMENT_CONFIG_DELIVERABLE_2
 
 
 # generic training loop for all
-def train_model(model, train_loader, valid_loader, epochs=5, lr=1e-3):
+def train_model(
+    model, train_loader, test_loader=None, epochs=5, lr=1e-3, context_len=None
+):
     model = model.to(DEVICE)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     criterion = nn.CrossEntropyLoss()
@@ -190,4 +192,103 @@ def run_deliverable_1():
     print(f"Deliverable 1 Complete. Results added to {REPORT_DIR}")
 
 
-#
+# word level experiments
+def run_deliverable_2():
+    print("\n==== STARTING DELIVERABLE 2: Word Level Experiments =====")
+
+    context_len = 64
+    epochs = 3
+    batch_size = 32
+
+    for task in EXPERIMENT_CONFIG_DELIVERABLE_2:
+        print(f"\n--- Running {task['name']} ---")
+
+        # 1. Load Data
+        train_text, valid_text, test_text = load_word_level_data(task["path"])
+        tokenizer = WordTokenizer(train_text, vocab_size=task["vocab"])
+
+        train_ds = WordDataset(train_text, tokenizer, context_len)
+        valid_ds = WordDataset(valid_text, tokenizer, context_len)
+        test_ds = WordDataset(test_text, tokenizer, context_len)
+
+        train_loader = torch.utils.data.DataLoader(
+            train_ds, batch_size=batch_size, shuffle=True
+        )
+        # We pass Test loader to training loop to track LL per epoch
+        test_loader = torch.utils.data.DataLoader(test_ds, batch_size=batch_size)
+
+        # 2. Initialize Model (Using "Best" from D1 - usually Transformer)
+        # Adjust these params if D1 proved a different config was better
+        model = TransformerLM(
+            vocab_size=tokenizer.vocab_size,
+            context_len=context_len,
+            embed_dim=256,
+            num_heads=4,
+            mlp_hidden=512,
+            num_layers=4,
+        )
+
+        # 3. Train with Tracking
+        history = train_model(
+            model,
+            train_loader,
+            test_loader=test_loader,
+            epochs=epochs,
+            lr=5e-4,
+            context_len=context_len,  # Needed for FLOPs calc
+        )
+
+        # 4. Generate Plots
+
+        # Plot A: Training Loss vs Epochs
+        plt.figure()
+        plt.plot(range(1, epochs + 1), history["train_loss"], marker="o")
+        plt.title(f"{task['name']} Training Loss")
+        plt.xlabel("Epoch")
+        plt.ylabel("Loss")
+        plt.grid(True)
+        plt.savefig(os.path.join(REPORT_DIR, f"d2_{task['name']}_loss.png"))
+        plt.close()
+
+        # Plot B: Test LL vs FLOPs (Trajectory)
+        plt.figure()
+        plt.plot(history["flops"], history["test_ll"], marker="o", linestyle="-")
+        plt.title(f"{task['name']} Test LL vs Training FLOPs")
+        plt.xlabel("Cumulative FLOPs")
+        plt.ylabel("Test Log-Likelihood")
+        plt.xscale("log")  # Log scale for FLOPs
+        plt.grid(True)
+        plt.savefig(os.path.join(REPORT_DIR, f"d2_{task['name']}_ll_flops.png"))
+        plt.close()
+
+        # 5. Generate Samples
+        generations_text = f"=== {task['name']} GENERATIONS ===\n"
+        print(f"Generating samples for {task['name']}...")
+
+        for prompt in task["prompts"]:
+            gen = generate_words(model, tokenizer, prompt, context_len, 100)
+            generations_text += f"\nPrompt: '{prompt}'\n{gen}\n"
+            print(f" > {prompt} ...")
+
+        # Save generations
+        with open(os.path.join(REPORT_DIR, f"d2_{task['name']}_gen.txt"), "w") as f:
+            f.write(generations_text)
+
+    print(f"Deliverable 2 Complete. Results in {REPORT_DIR}")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--d1", action="store_true", help="Run Deliverable 1")
+    parser.add_argument("--d2", action="store_true", help="Run Deliverable 2")
+
+    args = parser.parse_args()
+
+    if not args.d1 and not args.d2:
+        run_deliverable_1()
+        run_deliverable_2()
+    else:
+        if args.d1:
+            run_deliverable_1()
+        if args.d2:
+            run_deliverable_2()

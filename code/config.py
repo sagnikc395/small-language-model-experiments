@@ -1,4 +1,6 @@
 # config of the experiments
+from utils import PTB_DIR, WT2_DIR
+
 
 EXPERIMENT_CONFIG_DELIVERABLE_1 = {
     "linear": [
@@ -67,3 +69,24 @@ EXPERIMENT_CONFIG_DELIVERABLE_1 = {
         },
     ],
 }
+
+EXPERIMENT_CONFIG_DELIVERABLE_2 = [
+    {
+        "name": "PTB",
+        "path": PTB_DIR,
+        "vocab": 10000,
+        "prompts": ["the school announced that"],
+    },
+    {
+        "name": "WikiText-2",
+        "path": WT2_DIR,
+        "vocab": 20000,
+        "prompts": ["The history of machine learning beigns"],
+    },
+    {
+        "name": "WikiText-2",
+        "path": WT2_DIR,
+        "vocab": 15000,
+        "prompts": ["During the time of World War 2"],
+    },
+]

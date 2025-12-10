@@ -1,0 +1,3 @@
+2025-12-10 00:28:50,074 | INFO | Training Model: TransformerLM
+2025-12-10 00:28:50,074 | INFO | Total Train Batches: 27875, Total Valid Batches: 3486
+2025-12-10 00:39:03,961 | INFO | [Epoch 1 / 3] train_loss=1.2963, valid_loss=1.6069

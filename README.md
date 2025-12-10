@@ -23,4 +23,34 @@ and investigate,empirically, how architectural components and computational budg
 numbers of heads.
 - Multi-layer transformer -> A small transformer with multiple blocks.
 
+### Evaluation Metrics:
+
+- For each model we are experimenting with:
+  - Context Length (sequence length)
+  - MLP hyperparameters
+    - number of hiden units 
+    - number of layers 
+    - activation functions 
+
+  - Self Attention Hyperparameters:
+    - Number of Heads 
+    - Head Dimension 
+
+  - Transformer Hyperparameters:
+    - number of layers 
+    - embedding size 
+    - MLP width 
+
+  - Optimization choices:
+    - learning rate 
+    - scheduler 
+    - optimizer (Adam vs SGD)
+    - Batch size 
+
+- Other Strategies:
+  - Alternative embedding strategies 
+  - positional encodings 
+  - regularization tehcniques 
+  - weight tying 
+  - modifying training objectives.
 

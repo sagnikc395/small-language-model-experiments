@@ -5,20 +5,32 @@ import torch.nn.functional as F
 
 
 class LinearRegressionModel(nn.Module):
-    def __init__(self, vocab_size, context_len):
+    def __init__(self, vocab_size, context_len, activation="relu"):
         super().__init__()
         self.vocab_size = vocab_size
         self.context_len = context_len
         self.linear = nn.Linear(context_len * vocab_size, context_len * vocab_size)
+        self.activation_type = activation.lower()
 
     def forward(self, x):
         B, T = x.shape
-        assert T == self.context_len
 
-        # convert the tokens to one hot encoding
-        onehot = F.one_hot(x, num_classes=self.vocab_size).float()
+        x_cpu = x.to("cpu")
+        onehot = F.one_hot(x_cpu, num_classes=self.vocab_size).float()
+        onehot = onehot.to(x.device)
+
         flat = onehot.view(B, -1)
         logits = self.linear(flat).view(B, T, self.vocab_size)
+
+        # Apply activation if requested
+        if self.activation_type == "relu":
+            logits = F.relu(logits)
+        elif self.activation_type == "tanh":
+            logits = torch.tanh(logits)
+        # "identity" does nothing (standard linear regression)
+        elif self.activation_type == "leaky_relu":
+            logits = F.leaky_relu(logits)
+
         return logits
 
 

@@ -24,7 +24,19 @@ def generate(model, tokenizer, context, context_len, length=100):
     x = torch.tensor(ids, device=DEVICE).unsqueeze(0)
 
     for _ in range(length):
-        logits = model(x[:, -context_len:])
+        # 1. Get the last 'context_len' tokens
+        x_cond = x[:, -context_len:]
+
+        # 2. FIX: Pad left if the prompt is shorter than context_len
+        # (Required for Linear/MLP models that expect fixed input size)
+        if x_cond.size(1) < context_len:
+            pad_size = context_len - x_cond.size(1)
+            # Pad with 0 (assuming 0 is a valid index, typically safe for char level)
+            padding = torch.zeros((1, pad_size), dtype=torch.long, device=DEVICE)
+            x_cond = torch.cat([padding, x_cond], dim=1)
+
+        # 3. Forward pass
+        logits = model(x_cond)
         next_token = torch.argmax(logits[:, -1, :], dim=-1)
         x = torch.cat([x, next_token.unsqueeze(0)], dim=1)
 
@@ -33,7 +45,13 @@ def generate(model, tokenizer, context, context_len, length=100):
 
 def compute_training_flops(model, train_loader, context_len, epochs):
     n_params = sum(p.numel() for p in model.parameters())
-    total_tokens = len(train_loader.dataset) * context_len
+    try:
+        dataset_len = len(train_loader.dataset)
+    except TypeError:
+        # Fallback if dataset has no length (rare in this project)
+        dataset_len = 0
+
+    total_tokens = dataset_len * context_len
     flops_per_epoch = 2 * n_params * total_tokens
     return flops_per_epoch * epochs
 
@@ -48,11 +66,18 @@ def generate_words(model, tokenizer, prompt, context_len, max_new_words):
 
     for _ in range(max_new_words):
         x_cond = x[:, -context_len:]  # crop to the context_len
+        # Apply the same Padding Fix for word-level generation as well
+        if x_cond.size(1) < context_len:
+            pad_size = context_len - x_cond.size(1)
+            padding = torch.zeros((1, pad_size), dtype=torch.long, device=DEVICE)
+            x_cond = torch.cat([padding, x_cond], dim=1)
+
         logits = model(x_cond)
         next_token_logits = logits[:, -1, :]
         next_token = torch.argmax(next_token_logits, dim=-1)
 
         x = torch.cat([x, next_token.unsqueeze(0)], dim=1)
+
 
     ids = x[0].tolist()
     return tokenizer.decode(ids)

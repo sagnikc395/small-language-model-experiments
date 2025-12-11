@@ -5,7 +5,7 @@
 # ==========================================
 SYSTEM_CONFIG = {
     "seed": 1337,
-    "work_dir": "../results_src",  # Where to save plots
+    "work_dir": "../report_src",  # Where to save plots
     "data_dir": "../datasets",  # Root data folder containing subfolders
 }
 

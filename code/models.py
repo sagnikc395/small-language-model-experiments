@@ -123,13 +123,14 @@ class MLPModel(BaseModel):
 
 # --- 3. Transformer Model ---
 class Head(nn.Module):
-    def __init__(self, head_size, n_embd, block_size):
+    def __init__(self, head_size, n_embd, block_size, dropout=0.2):
         super().__init__()
         self.key = nn.Linear(n_embd, head_size, bias=False)
         self.query = nn.Linear(n_embd, head_size, bias=False)
         self.value = nn.Linear(n_embd, head_size, bias=False)
         # Register buffer to ensure it is part of state_dict but not a parameter
         self.register_buffer("tril", torch.tril(torch.ones(block_size, block_size)))
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
         B, T, C = x.shape
@@ -144,17 +145,23 @@ class Head(nn.Module):
         wei = wei.masked_fill(self.tril[:T, :T] == 0, float("-inf"))  # type: ignore
 
         wei = F.softmax(wei, dim=-1)
+
+        # add dropout
+        wei = self.dropout(wei)
         v = self.value(x)
         return wei @ v
 
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, num_heads, head_size, n_embd, block_size):
+    def __init__(self, num_heads, head_size, n_embd, block_size, dropout=0.2):
         super().__init__()
         self.heads = nn.ModuleList(
             [Head(head_size, n_embd, block_size) for _ in range(num_heads)]
         )
         self.proj = nn.Linear(num_heads * head_size, n_embd)
+
+        # added dropout for the output projection
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
         out = torch.cat([h(x) for h in self.heads], dim=-1)
@@ -162,12 +169,13 @@ class MultiHeadAttention(nn.Module):
 
 
 class FeedForward(nn.Module):
-    def __init__(self, n_embd, mult=4):
+    def __init__(self, n_embd, mult=4, dropout=0.2):
         super().__init__()
         self.net = nn.Sequential(
             nn.Linear(n_embd, mult * n_embd),
             nn.ReLU(),
             nn.Linear(mult * n_embd, n_embd),
+            nn.Dropout(dropout),
         )
 
     def forward(self, x):
@@ -175,10 +183,12 @@ class FeedForward(nn.Module):
 
 
 class TransformerBlock(nn.Module):
-    def __init__(self, n_embd, n_head, block_size):
+    def __init__(self, n_embd, n_head, block_size, dropout=0.2):
         super().__init__()
         head_size = n_embd // n_head
-        self.sa = MultiHeadAttention(n_head, head_size, n_embd, block_size)
+        self.sa = MultiHeadAttention(
+            n_head, head_size, n_embd, block_size, dropout=dropout
+        )
         self.ffwd = FeedForward(n_embd)
         self.ln1 = nn.LayerNorm(n_embd)
         self.ln2 = nn.LayerNorm(n_embd)
@@ -191,13 +201,22 @@ class TransformerBlock(nn.Module):
 
 
 class TransformerModel(BaseModel):
-    def __init__(self, vocab_size, block_size, n_embd, n_head, n_layers, **kwargs):
+    def __init__(
+        self, vocab_size, block_size, n_embd, n_head, n_layers, dropout=0.2, **kwargs
+    ):
         # FIX: Pass block_size to parent
         super().__init__(block_size)
         self.token_embedding = nn.Embedding(vocab_size, n_embd)
         self.position_embedding = nn.Embedding(block_size, n_embd)
+
+        # dropout for the embeddings
+        self.dropout = nn.Dropout(dropout)
+
         self.blocks = nn.Sequential(
-            *[TransformerBlock(n_embd, n_head, block_size) for _ in range(n_layers)]
+            *[
+                TransformerBlock(n_embd, n_head, block_size, dropout=dropout)
+                for _ in range(n_layers)
+            ]
         )
         self.ln_f = nn.LayerNorm(n_embd)
         self.lm_head = nn.Linear(n_embd, vocab_size)
@@ -208,6 +227,10 @@ class TransformerModel(BaseModel):
         # Ensure position embeddings match current sequence length T
         pos_emb = self.position_embedding(torch.arange(T, device=idx.device))
         x = tok_emb + pos_emb
+
+        # embedding dropout
+        x = self.dropout(x)
+
         x = self.blocks(x)
         x = self.ln_f(x)
         logits = self.lm_head(x)

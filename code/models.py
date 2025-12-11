@@ -1,132 +1,223 @@
-import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 
-def causal_mask(T, device):
-    m = torch.triu(torch.ones(T, T, device=device), diagonal=1)
-    m = m.masked_fill(m == 1, float("-inf"))
-    return m.unsqueeze(0).unsqueeze(0)
+# --- Base Class ---
+class BaseModel(nn.Module):
+    """Base class with generation capability"""
 
-
-## Linear Predictor Model
-## A single linear (softmax regression) layer
-
-
-class LinearModel(nn.Module):
-    def __init__(self, vocab, ctx):
+    def __init__(self, block_size) -> None:
         super().__init__()
-        self.vocab = vocab
-        self.ctx = ctx
-        self.fc = nn.Linear(ctx * vocab, ctx * vocab)
+        # Store block_size so generate() can access it
+        self.block_size = block_size
 
-    def forward(self, x):
-        onehot = F.one_hot(x, self.vocab).float()
-        flat = onehot.view(x.size(0), -1)
-        out = self.fc(flat)
-        return out.view(x.size(0), self.ctx, self.vocab)
+    def generate(self, idx, max_new_tokens):
+        for _ in range(max_new_tokens):
+            # Crop context if it exceeds block_size
+            # idx shape is (B, T)
+            idx_cond = idx[:, -self.block_size :]
 
+            # Get predictions
+            logits, _ = self(idx_cond)
 
-## Multi Layer Perceptron
-## At least 3 layers , with nonlinear activations
+            # Focus only on the last time step
+            logits = logits[:, -1, :]
 
+            # Apply softmax to get probabilities
+            probs = F.softmax(logits, dim=-1)
 
-class MLP(nn.Module):
-    def __init__(self, vocab, ctx, hdim=256, nlayers=2):
-        super().__init__()
-        layers = []
-        din = ctx * vocab
-        for _ in range(nlayers):
-            layers.append(nn.Linear(din, hdim))
-            layers.append(nn.ReLU())
-            din = hdim
+            # Sample from the distribution
+            idx_next = torch.multinomial(probs, num_samples=1)
 
-        layers.append(nn.Linear(din, ctx * vocab))
-        self.net = nn.Sequential(*layers)
-        self.vocab = vocab
-        self.ctx = ctx
-
-    def forward(self, x):
-        onehot = F.one_hot(x, self.vocab).float()
-        flat = onehot.view(x.size(0), -1)
-        out = self.net(flat)
-        return out.view(x.size(0), self.ctx, self.vocab)
+            # Append sampled index to the running sequence
+            idx = torch.cat((idx, idx_next), dim=1)
+        return idx
 
 
-## Single Self Attention
-## Basic building block of the more layered approach to use multi-head self-attention model
+# --- 1. Linear Model ---
+class LinearModel(BaseModel):
+    def __init__(self, vocab_size, block_size, n_embd, **kwargs):
+        # FIX: Pass block_size to parent
+        super().__init__(block_size)
+        self.token_embedding = nn.Embedding(vocab_size, n_embd)
+        # Flatten input (B, T, C) -> (B, T*C)
+        self.head = nn.Linear(block_size * n_embd, vocab_size)
 
+    def forward(self, idx, targets=None):
+        B, T = idx.shape
 
-class SelfAttentionLM(nn.Module):
-    def __init__(self, vocab, ctx, embed=128, heads=4):
-        super().__init__()
-        self.tok = nn.Embedding(vocab, embed)
-        self.pos = nn.Embedding(ctx, embed)
-        self.qkv = nn.Linear(embed, embed * 3)
-        self.proj = nn.Linear(embed, embed)
-        self.fc = nn.Linear(embed, vocab)
-        self.h = heads
-        self.ctx = ctx
+        # SAFETY CHECK: LinearModel requires exact block_size length
+        # because the Linear layer dimensions are fixed.
+        if T > self.block_size:
+            idx = idx[:, -self.block_size :]
+        elif T < self.block_size:
+            raise ValueError(
+                f"Input sequence length {T} is too short for LinearModel (needs {self.block_size})"
+            )
 
-    def forward(self, x):
-        B, T = x.shape
-        tok = self.tok(x)
-        pos = self.pos(torch.arange(T, device=x.device))[None, :, :]
-        h = tok + pos
+        # Re-calculate shapes after cropping
+        B, T = idx.shape
 
-        q, k, v = self.qkv(h).chunk(3, dim=-1)
-        hd = q.size(-1) // self.h
-        q = q.view(B, T, self.h, hd).transpose(1, 2)
-        k = k.view(B, T, self.h, hd).transpose(1, 2)
-        v = v.view(B, T, self.h, hd).transpose(1, 2)
+        x = self.token_embedding(idx).view(B, -1)  # Flattens to (B, T*C)
+        logits = self.head(x).unsqueeze(1)  # (B, 1, V)
 
-        att = (q @ k.transpose(-2, -1)) / math.sqrt(hd)
-        att += causal_mask(T, x.device)
-        att = att.softmax(-1)
-        out = att @ v
-        out = out.transpose(1, 2).contiguous().view(B, T, -1)
-        out = self.proj(out)
+        loss = None
+        if targets is not None:
+            loss = F.cross_entropy(
+                logits.view(-1, logits.size(-1)), targets[:, -1].view(-1)
+            )
+        return logits, loss
 
-        return self.fc(out)
-
-
-## Transformer Block
-## we use this to build the transformer language model
-class TransformerBlock(nn.Module):
-    def __init__(self, embed, heads, mlp_h):
-        super().__init__()
-        self.ln1 = nn.LayerNorm(embed)
-        self.ln2 = nn.LayerNorm(embed)
-        self.att = SelfAttentionLM
-        self.mlp = nn.Sequential(
-            nn.Linear(embed, mlp_h), nn.ReLU(), nn.Linear(mlp_h, embed)
+    def estimate_flops(self):
+        return (
+            2
+            * (self.block_size * self.token_embedding.embedding_dim)
+            * self.head.out_features
         )
 
-    def forward(self, x, mask):
-        x = x + self.att(self.ln1(x), mask)
-        x = x + self.mlp(self.ln2(x))
+
+# --- 2. MLP Model ---
+class MLPModel(BaseModel):
+    def __init__(self, vocab_size, block_size, n_embd, hidden_size, n_layers, **kwargs):
+        super().__init__(block_size)
+        self.token_embedding = nn.Embedding(vocab_size, n_embd)
+
+        layers = []
+        input_dim = block_size * n_embd
+        for _ in range(n_layers):
+            layers.append(nn.Linear(input_dim, hidden_size))
+            layers.append(nn.ReLU())
+            input_dim = hidden_size
+        layers.append(nn.Linear(hidden_size, vocab_size))
+        self.net = nn.Sequential(*layers)
+
+    def forward(self, idx, targets=None):
+        B, T = idx.shape
+
+        # --- FIX: Crop Context ---
+        if T > self.block_size:
+            idx = idx[:, -self.block_size :]
+        elif T < self.block_size:
+            raise ValueError(
+                f"Input sequence length {T} is too short for MLPModel (needs {self.block_size})"
+            )
+
+        x = self.token_embedding(idx).view(B, -1)
+        logits = self.net(x).unsqueeze(1)
+
+        loss = None
+        if targets is not None:
+            loss = F.cross_entropy(
+                logits.view(-1, logits.size(-1)), targets[:, -1].view(-1)
+            )
+        return logits, loss
+
+    def estimate_flops(self):
+        flops = 0
+        for layer in self.net:
+            if isinstance(layer, nn.Linear):
+                flops += 2 * layer.in_features * layer.out_features
+        return flops
+
+
+# --- 3. Transformer Model ---
+class Head(nn.Module):
+    def __init__(self, head_size, n_embd, block_size):
+        super().__init__()
+        self.key = nn.Linear(n_embd, head_size, bias=False)
+        self.query = nn.Linear(n_embd, head_size, bias=False)
+        self.value = nn.Linear(n_embd, head_size, bias=False)
+        # Register buffer to ensure it is part of state_dict but not a parameter
+        self.register_buffer("tril", torch.tril(torch.ones(block_size, block_size)))
+
+    def forward(self, x):
+        B, T, C = x.shape
+        k = self.key(x)
+        q = self.query(x)
+
+        # Scaled Dot-Product Attention
+        wei = q @ k.transpose(-2, -1) * (C**-0.5)
+
+        # Masking: Ensure we don't look ahead.
+        # Slicing [:T, :T] handles cases where input length T < block_size
+        wei = wei.masked_fill(self.tril[:T, :T] == 0, float("-inf"))  # type: ignore
+
+        wei = F.softmax(wei, dim=-1)
+        v = self.value(x)
+        return wei @ v
+
+
+class MultiHeadAttention(nn.Module):
+    def __init__(self, num_heads, head_size, n_embd, block_size):
+        super().__init__()
+        self.heads = nn.ModuleList(
+            [Head(head_size, n_embd, block_size) for _ in range(num_heads)]
+        )
+        self.proj = nn.Linear(num_heads * head_size, n_embd)
+
+    def forward(self, x):
+        out = torch.cat([h(x) for h in self.heads], dim=-1)
+        return self.proj(out)
+
+
+class FeedForward(nn.Module):
+    def __init__(self, n_embd, mult=4):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(n_embd, mult * n_embd),
+            nn.ReLU(),
+            nn.Linear(mult * n_embd, n_embd),
+        )
+
+    def forward(self, x):
+        return self.net(x)
+
+
+class TransformerBlock(nn.Module):
+    def __init__(self, n_embd, n_head, block_size):
+        super().__init__()
+        head_size = n_embd // n_head
+        self.sa = MultiHeadAttention(n_head, head_size, n_embd, block_size)
+        self.ffwd = FeedForward(n_embd)
+        self.ln1 = nn.LayerNorm(n_embd)
+        self.ln2 = nn.LayerNorm(n_embd)
+
+    def forward(self, x):
+        # Pre-Norm formulation (Karpathy/GPT-2 style)
+        x = x + self.sa(self.ln1(x))
+        x = x + self.ffwd(self.ln2(x))
         return x
 
 
-### Transformer Language Model
-class TransformerLM(nn.Module):
-    def __init__(self, vocab, ctx, layers=2, embed=128, heads=4, mlp_h=256):
-        super().__init__()
-        self.tok = nn.Embedding(vocab, embed)
-        self.pos = nn.Embedding(ctx, embed)
-        self.blocks = nn.ModuleList(
-            [TransformerBlock(embed, heads, mlp_h) for _ in range(layers)]
+class TransformerModel(BaseModel):
+    def __init__(self, vocab_size, block_size, n_embd, n_head, n_layers, **kwargs):
+        # FIX: Pass block_size to parent
+        super().__init__(block_size)
+        self.token_embedding = nn.Embedding(vocab_size, n_embd)
+        self.position_embedding = nn.Embedding(block_size, n_embd)
+        self.blocks = nn.Sequential(
+            *[TransformerBlock(n_embd, n_head, block_size) for _ in range(n_layers)]
         )
+        self.ln_f = nn.LayerNorm(n_embd)
+        self.lm_head = nn.Linear(n_embd, vocab_size)
 
-        self.ln = nn.LayerNorm(embed)
-        self.fc = nn.Linear(embed, vocab)
-        self.ctx = ctx
+    def forward(self, idx, targets=None):
+        B, T = idx.shape
+        tok_emb = self.token_embedding(idx)
+        # Ensure position embeddings match current sequence length T
+        pos_emb = self.position_embedding(torch.arange(T, device=idx.device))
+        x = tok_emb + pos_emb
+        x = self.blocks(x)
+        x = self.ln_f(x)
+        logits = self.lm_head(x)
 
-    def forward(self, x):
-        B, T = x.shape
-        h = self.tok(x) + self.pos(torch.arange(T, device=x.device))[None, :, :]
-        mask = causal_mask(T, x.device)
-        for blk in self.blocks:
-            h = blk(h, mask)
-        return self.fc(self.ln(h))
+        loss = None
+        if targets is not None:
+            B, T, V = logits.shape
+            loss = F.cross_entropy(logits.view(-1, V), targets.view(-1))
+        return logits, loss
+
+    def estimate_flops(self):
+        # Rough proxy: Num Params * 2
+        return sum(p.numel() for p in self.parameters()) * 2

@@ -1,7 +1,8 @@
 # config of the experiments
+from typing import Literal
+
 from architectures import MLP, LinearRegressionModel, SelfAttentionLM, TransformerLM
 from utils import PTB_DIR, WT2_DIR
-from typing import Literal
 
 OptimizerType = Literal["adam", "rmsprop", "sgd", "sgd-momentum"]
 ArchitectureType = Literal["linear", "mlp", "transformer", "self_attention"]

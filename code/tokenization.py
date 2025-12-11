@@ -1,6 +1,7 @@
-from torch.utils.data import Dataset
-import torch
 from collections import Counter
+
+import torch
+from torch.utils.data import Dataset
 
 
 class CharTokenizer:

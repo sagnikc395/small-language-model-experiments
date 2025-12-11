@@ -1,18 +1,19 @@
-import os
-import torch
-import torch.nn as nn
-import matplotlib.pyplot as plt
 import argparse
 import json
-from typing import Dict, List, Any, Optional, Tuple, Union, cast, Sized
+import os
+from typing import Any, Dict, List, Optional, Sized, Tuple, Union, cast
 
-# --- Local Imports ---
-from utils import (
-    logger,
-    load_shakespeare_data,
-    load_word_level_data,
-    SHAKESPEARE_DATA_PATH,
-    REPORT_DIR,
+import matplotlib.pyplot as plt
+import torch
+import torch.nn as nn
+from architectures import MLP, LinearRegressionModel, SelfAttentionLM, TransformerLM
+
+# --- Config Imports ---
+from config import (
+    EXPERIMENT_CONFIG_DELIVERABLE_1,
+    EXPERIMENT_CONFIG_DELIVERABLE_2,
+    ArchitectureType,
+    OptimizerType,
 )
 from evaluation import (
     DEVICE,
@@ -21,15 +22,15 @@ from evaluation import (
     generate,
     generate_words,
 )
-from tokenization import CharTokenizer, CharDataset, WordTokenizer, WordDataset
-from architectures import LinearRegressionModel, MLP, SelfAttentionLM, TransformerLM
+from tokenization import CharDataset, CharTokenizer, WordDataset, WordTokenizer
 
-# --- Config Imports ---
-from config import (
-    EXPERIMENT_CONFIG_DELIVERABLE_1,
-    EXPERIMENT_CONFIG_DELIVERABLE_2,
-    OptimizerType,
-    ArchitectureType,
+# --- Local Imports ---
+from utils import (
+    REPORT_DIR,
+    SHAKESPEARE_DATA_PATH,
+    load_shakespeare_data,
+    load_word_level_data,
+    logger,
 )
 
 

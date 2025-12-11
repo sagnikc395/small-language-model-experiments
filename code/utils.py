@@ -1,5 +1,6 @@
-import os
+import csv
 import logging
+import os
 
 # data paths
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -24,7 +25,6 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-import csv
 
 csv_path = os.path.join(LOGS_DIR, "training_metrics.csv")
 write_header = not os.path.exists(csv_path)

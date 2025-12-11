@@ -78,6 +78,5 @@ def generate_words(model, tokenizer, prompt, context_len, max_new_words):
 
         x = torch.cat([x, next_token.unsqueeze(0)], dim=1)
 
-
     ids = x[0].tolist()
     return tokenizer.decode(ids)

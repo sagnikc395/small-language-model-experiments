@@ -1,0 +1,15 @@
+Best Hyperparameter Settings Found:
+{
+    "block_size": 64,
+    "batch_size": 64,
+    "epochs": 5,
+    "n_embd": 64,
+    "n_head": 4,
+    "n_layers": 2,
+    "optimizer": "adamw",
+    "dropout": 0.2,
+    "lr": 0.01,
+    "model_type": "transformer"
+}
+
+Best Validation Loss: 2.0967

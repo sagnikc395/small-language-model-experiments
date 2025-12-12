@@ -1,0 +1,13 @@
+Model: Best Model
+Prompt: HAMLET:
+----------------------------------------
+HAMLET:
+As my rer bece leith of the hish doon
+Thear of his my lerse comers prase.
+
+ICHERICIIIES:
+Hany fron iferied con.
+
+Se kers, intay, kin thervou ch, nejy lis ond beard:
+It yous! she shense not ther end s
+----------------------------------------

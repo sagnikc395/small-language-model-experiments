@@ -1,6 +1,6 @@
-# code/data_loader.py
-import torch
 import os
+
+import torch
 
 
 class TextDataset:

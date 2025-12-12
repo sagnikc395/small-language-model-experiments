@@ -1,6 +1,3 @@
-# code/trainer.py
-import time
-
 import torch
 from tqdm import tqdm
 
@@ -114,7 +111,6 @@ def estimate_loss(model, dataset, batch_size=32, eval_iters=50):
     """
     Estimates the loss on the validation set using `eval_iters` batches.
     """
-    out = {}
     model.eval()  # Switch to evaluation mode (disable dropout)
     losses = torch.zeros(eval_iters)
     for k in range(eval_iters):

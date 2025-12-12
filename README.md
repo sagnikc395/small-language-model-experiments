@@ -4,7 +4,7 @@ Made as a part of CS689 HW6 on experimentation and building of small language mo
 
 ### Objective:
 
-- Design, train and evaluate a seqeunce of increasingly capable small-language-model
+- Design, train and evaluate a sequence of increasingly capable small-language-model
 and investigate,empirically, how architectural components and computational budget affect model quality.
 
 ### Datasets:

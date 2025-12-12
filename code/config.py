@@ -158,19 +158,3 @@ LR_SWEEP = {
     "sweep_param": "lr",
     "sweep_values": [1e-2, 1e-3, 5e-4, 1e-4],
 }
-
-# ==========================================
-# DELIVERABLE 2: WORD LEVEL (PTB / WIKI)
-# ==========================================
-D2_SETTINGS = {
-    "model_type": "transformer",
-    "batch_size": 64,
-    "epochs": 10,
-    "lr": 5e-4,
-    "block_size": 128,
-    "n_embd": 256,
-    "n_head": 8,
-    "n_layers": 4,
-    "dropout": 0.2,
-    "optimizer": "adamw",
-}

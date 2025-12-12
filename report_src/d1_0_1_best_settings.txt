@@ -12,4 +12,4 @@ Best Hyperparameter Settings Found:
     "model_type": "transformer"
 }
 
-Best Validation Loss: 2.0967
+Best Validation Loss: 2.0988

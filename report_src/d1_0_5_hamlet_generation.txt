@@ -1,13 +1,13 @@
 Model: Best Model
 Prompt: HAMLET:
 ----------------------------------------
-HAMLET:
-As my rer bece leith of the hish doon
-Thear of his my lerse comers prase.
+HAMLET: enciove sidl:
+Thing themath hees hongears but beothe ye whand se seidien.
+HARD IYD VINTE:
+Heath me, yours me wild, kid mer fent kin to wou.
+Qulion' I?
 
-ICHERICIIIES:
-Hany fron iferied con.
+LICHARD:
+Wit the borenty lod mang bits thill I
 
-Se kers, intay, kin thervou ch, nejy lis ond beard:
-It yous! she shense not ther end s
 ----------------------------------------

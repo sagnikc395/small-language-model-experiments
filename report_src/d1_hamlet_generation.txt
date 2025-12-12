@@ -1,0 +1,11 @@
+Model: Best Model (TinyShakespeare)
+Prompt: HAMLET:
+----------------------------------------
+HAMLET:
+By note ind, thake we as the thenk strand him timusth off bindoul tolereoes
+Ham Jurrat to che hin:
+Wich ipigh Efeengs and by of thite
+Par you by swill by thy you wry fruftese
+Thee min:
+Whut whiat ofe
+----------------------------------------

@@ -182,6 +182,64 @@ class FeedForward(nn.Module):
         return self.net(x)
 
 
+class AttentionBlock(nn.Module):
+    """
+    A Transformer block STRIPPED of the FeedForward layer.
+    It only performs Self-Attention.
+    """
+
+    def __init__(self, n_embd, n_head, block_size, dropout=0.2):
+        super().__init__()
+        head_size = n_embd // n_head
+        self.sa = MultiHeadAttention(n_head, head_size, n_embd, block_size, dropout)
+        self.ln1 = nn.LayerNorm(n_embd)
+
+    def forward(self, x):
+        # Only Attention + Residual + Norm
+        # No FeedForward layer here!
+        x = x + self.sa(self.ln1(x))
+        return x
+
+
+class AttentionModel(BaseModel):
+    def __init__(
+        self, vocab_size, block_size, n_embd, n_head, n_layers, dropout=0.2, **kwargs
+    ):
+        super().__init__(block_size)
+        self.token_embedding = nn.Embedding(vocab_size, n_embd)
+        self.position_embedding = nn.Embedding(block_size, n_embd)
+        self.dropout = nn.Dropout(dropout)
+
+        # Use the specific AttentionBlock (No FF)
+        self.blocks = nn.Sequential(
+            *[
+                AttentionBlock(n_embd, n_head, block_size, dropout)
+                for _ in range(n_layers)
+            ]
+        )
+        self.ln_f = nn.LayerNorm(n_embd)
+        self.lm_head = nn.Linear(n_embd, vocab_size)
+
+    def forward(self, idx, targets=None):
+        B, T = idx.shape
+        tok_emb = self.token_embedding(idx)
+        pos_emb = self.position_embedding(torch.arange(T, device=idx.device))
+        x = tok_emb + pos_emb
+        x = self.dropout(x)
+        x = self.blocks(x)
+        x = self.ln_f(x)
+        logits = self.lm_head(x)
+
+        loss = None
+        if targets is not None:
+            B, T, V = logits.shape
+            loss = F.cross_entropy(logits.view(-1, V), targets.view(-1))
+        return logits, loss
+
+    def estimate_flops(self):
+        return sum(p.numel() for p in self.parameters()) * 2
+
+
 class TransformerBlock(nn.Module):
     def __init__(self, n_embd, n_head, block_size, dropout=0.2):
         super().__init__()

@@ -1,0 +1,281 @@
+Using device: mps
+
+=== DELIVERABLE 1: TINY SHAKESPEARE ===
+Loaded ../datasets/tiny_shakespeare
+ - Vocab size: 65
+ - Train tokens: 892117
+ - Val tokens:   111669
+
+>>> Running Sweep: Linear_Context_Sweep
+   Testing block_size = 8
+--> Starting: Model | Opt: ADAMW | LR: 0.001 | Device: mps
+Epoch 1: Train Loss 3.1383 | Val Loss 2.7601
+Epoch 2: Train Loss 2.6092 | Val Loss 2.5659
+Epoch 3: Train Loss 2.4736 | Val Loss 2.5216
+Epoch 4: Train Loss 2.4293 | Val Loss 2.4856
+Epoch 5: Train Loss 2.4111 | Val Loss 2.4934
+   Testing block_size = 32
+--> Starting: Model | Opt: ADAMW | LR: 0.001 | Device: mps
+Epoch 1: Train Loss 3.0909 | Val Loss 2.8220
+Epoch 2: Train Loss 2.6893 | Val Loss 2.6673
+Epoch 3: Train Loss 2.5822 | Val Loss 2.6059
+Epoch 4: Train Loss 2.5146 | Val Loss 2.5335
+Epoch 5: Train Loss 2.4571 | Val Loss 2.5563
+   Testing block_size = 64
+--> Starting: Model | Opt: ADAMW | LR: 0.001 | Device: mps
+Epoch 1: Train Loss 3.2176 | Val Loss 3.0452
+Epoch 2: Train Loss 2.8861 | Val Loss 2.8566
+Epoch 3: Train Loss 2.7248 | Val Loss 2.7120
+Epoch 4: Train Loss 2.5855 | Val Loss 2.7369
+Epoch 5: Train Loss 2.5781 | Val Loss 2.6731
+   Testing block_size = 128
+--> Starting: Model | Opt: ADAMW | LR: 0.001 | Device: mps
+Epoch 1: Train Loss 3.5217 | Val Loss 3.4352
+Epoch 2: Train Loss 3.2084 | Val Loss 3.2357
+Epoch 3: Train Loss 3.0425 | Val Loss 3.0240
+Epoch 4: Train Loss 2.8383 | Val Loss 2.8707
+Epoch 5: Train Loss 2.7439 | Val Loss 2.8708
+   Testing block_size = 256
+--> Starting: Model | Opt: ADAMW | LR: 0.001 | Device: mps
+Epoch 1: Train Loss 3.9890 | Val Loss 4.0344
+Epoch 2: Train Loss 3.8595 | Val Loss 3.8452
+Epoch 3: Train Loss 3.5619 | Val Loss 3.5944
+Epoch 4: Train Loss 3.3212 | Val Loss 3.4162
+Epoch 5: Train Loss 3.1727 | Val Loss 3.3375
+Saved plot: ../report_src/d1_linear_context.png
+
+>>> Running Sweep: MLP_Width_Sweep
+   Testing hidden_size = 64
+--> Starting: Model | Opt: ADAMW | LR: 0.001 | Device: mps
+Epoch 1: Train Loss 3.4279 | Val Loss 3.1374
+Epoch 2: Train Loss 3.0115 | Val Loss 2.9645
+Epoch 3: Train Loss 2.8447 | Val Loss 2.7588
+Epoch 4: Train Loss 2.7159 | Val Loss 2.7209
+Epoch 5: Train Loss 2.6841 | Val Loss 2.6919
+   Testing hidden_size = 128
+--> Starting: Model | Opt: ADAMW | LR: 0.001 | Device: mps
+Epoch 1: Train Loss 3.3132 | Val Loss 3.0009
+Epoch 2: Train Loss 2.8870 | Val Loss 2.7516
+Epoch 3: Train Loss 2.6785 | Val Loss 2.6007
+Epoch 4: Train Loss 2.5528 | Val Loss 2.5323
+Epoch 5: Train Loss 2.5268 | Val Loss 2.5654
+   Testing hidden_size = 256
+--> Starting: Model | Opt: ADAMW | LR: 0.001 | Device: mps
+Epoch 1: Train Loss 3.2906 | Val Loss 2.9804
+Epoch 2: Train Loss 2.8446 | Val Loss 2.7474
+Epoch 3: Train Loss 2.5965 | Val Loss 2.5975
+Epoch 4: Train Loss 2.4773 | Val Loss 2.5199
+Epoch 5: Train Loss 2.4830 | Val Loss 2.4897
+   Testing hidden_size = 512
+--> Starting: Model | Opt: ADAMW | LR: 0.001 | Device: mps
+Epoch 1: Train Loss 3.2813 | Val Loss 3.0153
+Epoch 2: Train Loss 2.8096 | Val Loss 2.6833
+Epoch 3: Train Loss 2.6280 | Val Loss 2.5313
+Epoch 4: Train Loss 2.5087 | Val Loss 2.5079
+Epoch 5: Train Loss 2.4554 | Val Loss 2.5352
+Saved plot: ../report_src/d1_mlp_width.png
+
+>>> Running Sweep: MLP_Depth_Sweep
+   Testing n_layers = 2
+--> Starting: Model | Opt: ADAMW | LR: 0.001 | Device: mps
+Epoch 1: Train Loss 3.2664 | Val Loss 3.0812
+Epoch 2: Train Loss 2.8706 | Val Loss 2.7302
+Epoch 3: Train Loss 2.6585 | Val Loss 2.6101
+Epoch 4: Train Loss 2.5662 | Val Loss 2.5958
+Epoch 5: Train Loss 2.5314 | Val Loss 2.5406
+   Testing n_layers = 4
+--> Starting: Model | Opt: ADAMW | LR: 0.001 | Device: mps
+Epoch 1: Train Loss 3.3598 | Val Loss 3.1793
+Epoch 2: Train Loss 2.9782 | Val Loss 2.8232
+Epoch 3: Train Loss 2.7473 | Val Loss 2.7165
+Epoch 4: Train Loss 2.5966 | Val Loss 2.6056
+Epoch 5: Train Loss 2.5980 | Val Loss 2.5638
+   Testing n_layers = 8
+--> Starting: Model | Opt: ADAMW | LR: 0.001 | Device: mps
+Epoch 1: Train Loss 3.4323 | Val Loss 3.2544
+Epoch 2: Train Loss 3.2260 | Val Loss 3.2087
+Epoch 3: Train Loss 3.1719 | Val Loss 3.1903
+Epoch 4: Train Loss 3.1340 | Val Loss 3.0811
+Epoch 5: Train Loss 3.0729 | Val Loss 3.0825
+Saved plot: ../report_src/d1_mlp_depth.png
+
+>>> Running Sweep: AttentionOnly_Heads_Sweep
+   Testing n_head = 2
+--> Starting: Model | Opt: ADAMW | LR: 0.0005 | Device: mps
+Epoch 1: Train Loss 3.3121 | Val Loss 2.8581
+Epoch 2: Train Loss 2.7703 | Val Loss 2.6742
+Epoch 3: Train Loss 2.6795 | Val Loss 2.6229
+Epoch 4: Train Loss 2.6435 | Val Loss 2.6086
+Epoch 5: Train Loss 2.6394 | Val Loss 2.6051
+   Testing n_head = 4
+--> Starting: Model | Opt: ADAMW | LR: 0.0005 | Device: mps
+Epoch 1: Train Loss 3.3403 | Val Loss 2.9029
+Epoch 2: Train Loss 2.7739 | Val Loss 2.6533
+Epoch 3: Train Loss 2.6633 | Val Loss 2.6152
+Epoch 4: Train Loss 2.6284 | Val Loss 2.5925
+Epoch 5: Train Loss 2.6210 | Val Loss 2.5962
+   Testing n_head = 8
+--> Starting: Model | Opt: ADAMW | LR: 0.0005 | Device: mps
+Epoch 1: Train Loss 3.3056 | Val Loss 2.8963
+Epoch 2: Train Loss 2.7679 | Val Loss 2.6534
+Epoch 3: Train Loss 2.6551 | Val Loss 2.6110
+Epoch 4: Train Loss 2.6241 | Val Loss 2.5888
+Epoch 5: Train Loss 2.6169 | Val Loss 2.5906
+Saved plot: ../report_src/d1_attn_heads.png
+
+>>> Running Sweep: Transformer_Heads_Sweep
+   Testing n_head = 2
+--> Starting: Model | Opt: ADAMW | LR: 0.0005 | Device: mps
+Epoch 1: Train Loss 3.0560 | Val Loss 2.6587
+Epoch 2: Train Loss 2.6158 | Val Loss 2.5360
+Epoch 3: Train Loss 2.5425 | Val Loss 2.4925
+Epoch 4: Train Loss 2.5129 | Val Loss 2.4772
+Epoch 5: Train Loss 2.5036 | Val Loss 2.4722
+   Testing n_head = 4
+--> Starting: Model | Opt: ADAMW | LR: 0.0005 | Device: mps
+Epoch 1: Train Loss 3.0396 | Val Loss 2.6634
+Epoch 2: Train Loss 2.6074 | Val Loss 2.5442
+Epoch 3: Train Loss 2.5412 | Val Loss 2.4991
+Epoch 4: Train Loss 2.5081 | Val Loss 2.4865
+Epoch 5: Train Loss 2.5018 | Val Loss 2.4817
+   Testing n_head = 8
+--> Starting: Model | Opt: ADAMW | LR: 0.0005 | Device: mps
+Epoch 1: Train Loss 3.0588 | Val Loss 2.6638
+Epoch 2: Train Loss 2.6133 | Val Loss 2.5464
+Epoch 3: Train Loss 2.5490 | Val Loss 2.5086
+Epoch 4: Train Loss 2.5187 | Val Loss 2.5013
+Epoch 5: Train Loss 2.5088 | Val Loss 2.4982
+Saved plot: ../report_src/d1_tfm_heads.png
+Saved plot: ../report_src/d1_tfm_loss_curves.png
+
+>>> Running Sweep: Transformer_Depth_Sweep
+   Testing n_layers = 1
+--> Starting: Model | Opt: ADAMW | LR: 0.0005 | Device: mps
+Epoch 1: Train Loss 3.4490 | Val Loss 3.0250
+Epoch 2: Train Loss 2.9388 | Val Loss 2.7975
+Epoch 3: Train Loss 2.7945 | Val Loss 2.7189
+Epoch 4: Train Loss 2.7463 | Val Loss 2.6857
+Epoch 5: Train Loss 2.7319 | Val Loss 2.6756
+   Testing n_layers = 2
+--> Starting: Model | Opt: ADAMW | LR: 0.0005 | Device: mps
+Epoch 1: Train Loss 3.3480 | Val Loss 2.9257
+Epoch 2: Train Loss 2.8427 | Val Loss 2.7091
+Epoch 3: Train Loss 2.7192 | Val Loss 2.6448
+Epoch 4: Train Loss 2.6785 | Val Loss 2.6206
+Epoch 5: Train Loss 2.6640 | Val Loss 2.6218
+   Testing n_layers = 4
+--> Starting: Model | Opt: ADAMW | LR: 0.0005 | Device: mps
+Epoch 1: Train Loss 3.2701 | Val Loss 2.8737
+Epoch 2: Train Loss 2.7851 | Val Loss 2.6588
+Epoch 3: Train Loss 2.6571 | Val Loss 2.6011
+Epoch 4: Train Loss 2.6165 | Val Loss 2.5830
+Epoch 5: Train Loss 2.6081 | Val Loss 2.5766
+   Testing n_layers = 6
+--> Starting: Model | Opt: ADAMW | LR: 0.0005 | Device: mps
+Epoch 1: Train Loss 3.1860 | Val Loss 2.8013
+Epoch 2: Train Loss 2.7225 | Val Loss 2.6269
+Epoch 3: Train Loss 2.6143 | Val Loss 2.5738
+Epoch 4: Train Loss 2.5809 | Val Loss 2.5524
+Epoch 5: Train Loss 2.5662 | Val Loss 2.5513
+Saved plot: ../report_src/d1_tfm_depth.png
+
+>>> Running Sweep: Optimizer_Sweep
+   Testing optimizer = adamw
+--> Starting: Model | Opt: ADAMW | LR: 0.001 | Device: mps
+Epoch 1: Train Loss 3.1459 | Val Loss 2.7086
+Epoch 2: Train Loss 2.6667 | Val Loss 2.5818
+Epoch 3: Train Loss 2.5836 | Val Loss 2.5457
+Epoch 4: Train Loss 2.5556 | Val Loss 2.5239
+Epoch 5: Train Loss 2.5449 | Val Loss 2.5185
+   Testing optimizer = sgd
+--> Starting: Model | Opt: SGD | LR: 0.001 | Device: mps
+Epoch 1: Train Loss 4.1442 | Val Loss 3.8769
+Epoch 2: Train Loss 3.7356 | Val Loss 3.5369
+Epoch 3: Train Loss 3.5208 | Val Loss 3.4304
+Epoch 4: Train Loss 3.4510 | Val Loss 3.3897
+Epoch 5: Train Loss 3.4295 | Val Loss 3.3927
+Saved plot: ../report_src/d1_optimizer.png
+
+>>> Running Sweep: LearningRate_Sweep
+   Testing lr = 0.01
+--> Starting: Model | Opt: ADAMW | LR: 0.01 | Device: mps
+Epoch 1: Train Loss 2.6865 | Val Loss 2.4560
+Epoch 2: Train Loss 2.4246 | Val Loss 2.3267
+Epoch 3: Train Loss 2.3119 | Val Loss 2.2035
+Epoch 4: Train Loss 2.2281 | Val Loss 2.1436
+Epoch 5: Train Loss 2.1994 | Val Loss 2.1255
+   Testing lr = 0.001
+--> Starting: Model | Opt: ADAMW | LR: 0.001 | Device: mps
+Epoch 1: Train Loss 3.1484 | Val Loss 2.7296
+Epoch 2: Train Loss 2.6756 | Val Loss 2.5904
+Epoch 3: Train Loss 2.5886 | Val Loss 2.5406
+Epoch 4: Train Loss 2.5528 | Val Loss 2.5343
+Epoch 5: Train Loss 2.5497 | Val Loss 2.5229
+   Testing lr = 0.0005
+--> Starting: Model | Opt: ADAMW | LR: 0.0005 | Device: mps
+Epoch 1: Train Loss 3.3526 | Val Loss 2.9492
+Epoch 2: Train Loss 2.8470 | Val Loss 2.7070
+Epoch 3: Train Loss 2.7164 | Val Loss 2.6419
+Epoch 4: Train Loss 2.6708 | Val Loss 2.6191
+Epoch 5: Train Loss 2.6623 | Val Loss 2.6209
+   Testing lr = 0.0001
+--> Starting: Model | Opt: ADAMW | LR: 0.0001 | Device: mps
+Epoch 1: Train Loss 3.8980 | Val Loss 3.4608
+Epoch 2: Train Loss 3.3771 | Val Loss 3.2544
+Epoch 3: Train Loss 3.2570 | Val Loss 3.1934
+Epoch 4: Train Loss 3.2090 | Val Loss 3.1581
+Epoch 5: Train Loss 3.1978 | Val Loss 3.1563
+Saved plot: ../report_src/d1_flops_vs_ll.png
+
+--- BEST MODEL FOUND: transformer (Val Loss: 2.1255) ---
+Config: {'block_size': 64, 'batch_size': 64, 'epochs': 5, 'n_embd': 64, 'n_head': 4, 'n_layers': 2, 'optimizer': 'adamw', 'dropout': 0.2, 'lr': 0.01, 'model_type': 'transformer'}
+Saved best configuration to ../report_src/best_config_deliverable1.json
+Saved generated text to: ../report_src/d1_hamlet_generation.txt
+
+=== DELIVERABLE 2: WORD LEVEL (PTB & WIKITEXT) ===
+Loaded architecture from best_config_deliverable1.json
+Training Config for D2: {'block_size': 64, 'batch_size': 64, 'epochs': 10, 'n_embd': 64, 'n_head': 4, 'n_layers': 2, 'optimizer': 'adamw', 'dropout': 0.2, 'lr': 0.01, 'model_type': 'transformer'}
+
+Training on PTB...
+Loaded ../datasets/ptb
+ - Vocab size: 9999
+ - Train tokens: 887521
+ - Val tokens:   70390
+--> Starting: Model | Opt: ADAMW | LR: 0.01 | Device: mps
+Epoch 1: Train Loss 6.7603 | Val Loss 6.4147
+Epoch 2: Train Loss 6.1956 | Val Loss 5.9825
+Epoch 3: Train Loss 5.8310 | Val Loss 5.7630
+Epoch 4: Train Loss 5.6186 | Val Loss 5.6540
+Epoch 5: Train Loss 5.4680 | Val Loss 5.5467
+Epoch 6: Train Loss 5.3694 | Val Loss 5.5005
+Epoch 7: Train Loss 5.2943 | Val Loss 5.4578
+Epoch 8: Train Loss 5.2605 | Val Loss 5.4411
+Epoch 9: Train Loss 5.2095 | Val Loss 5.4142
+Epoch 10: Train Loss 5.2177 | Val Loss 5.4410
+--- PTB Generated Sample ---
+the school announced that there would price sci tv mutual when they were looked to persuade but someone do n't than a than before the <unk> plaza 's one fraudulent i bond market the exchange investor 's computer candidates chrysler 's venture in practice of appointments as u.s. yield and development bank issues studying his children as itself introduced by program you 'd start in new post however in stock-index arbitrage that we would be really do they market to the previous problem through the confrontation what the only again over it can be more than but the companies may reason was n't alter
+---------------------------------
+Saved generated text to: ../report_src/d2_ptb_generation.txt
+
+Training on WikiText...
+Loaded ../datasets/wikitext-2
+ - Vocab size: 33277
+ - Train tokens: 2051910
+ - Val tokens:   213886
+--> Starting: Model | Opt: ADAMW | LR: 0.01 | Device: mps
+Epoch 1: Train Loss 7.2953 | Val Loss 6.5830
+Epoch 2: Train Loss 6.6006 | Val Loss 6.2285
+Epoch 3: Train Loss 6.2838 | Val Loss 6.0251
+Epoch 4: Train Loss 6.0818 | Val Loss 5.8960
+Epoch 5: Train Loss 5.9207 | Val Loss 5.8019
+Epoch 6: Train Loss 5.8078 | Val Loss 5.7366
+Epoch 7: Train Loss 5.7433 | Val Loss 5.6983
+Epoch 8: Train Loss 5.6651 | Val Loss 5.6651
+Epoch 9: Train Loss 5.6286 | Val Loss 5.6441
+Epoch 10: Train Loss 5.6182 | Val Loss 5.6507
+--- WikiText Generated Sample ---
+The history of machine learning begins the Shell because she was discontinued to appease " Ode to the nationalist third four months at its reformed Hot 24 March 2015 – 9 , which has aired . Some in Latin America remained to play @-@ <unk> the runway team to <unk> adaptation of S. S. <unk> <unk> <unk> . The undergraduate critics <unk> , Robert wrote that the <unk> , in The French driver posed it is known leukemias . <unk> Cinta connects in March , <unk> Dylan 's Office ( in front revenue ) and moves in both <unk> FFI makes there , and metal <unk>
+---------------------------------
+Saved generated text to: ../report_src/d2_wikitext_generation.txt
+
+Done! Check 'report_src/' folder for plots and text files.

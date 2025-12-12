@@ -3,13 +3,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-# --- Base Class ---
 class BaseModel(nn.Module):
     """Base class with generation capability"""
 
     def __init__(self, block_size) -> None:
         super().__init__()
-        # Store block_size so generate() can access it
         self.block_size = block_size
 
     def generate(self, idx, max_new_tokens):
@@ -47,8 +45,7 @@ class LinearModel(BaseModel):
     def forward(self, idx, targets=None):
         B, T = idx.shape
 
-        # SAFETY CHECK: LinearModel requires exact block_size length
-        # because the Linear layer dimensions are fixed.
+        # SAFETY CHECK: LinearModel requires exact block_size length because the Linear layer dimensions are fixed.
         if T > self.block_size:
             idx = idx[:, -self.block_size :]
         elif T < self.block_size:
@@ -262,7 +259,6 @@ class TransformerModel(BaseModel):
     def __init__(
         self, vocab_size, block_size, n_embd, n_head, n_layers, dropout=0.2, **kwargs
     ):
-        # FIX: Pass block_size to parent
         super().__init__(block_size)
         self.token_embedding = nn.Embedding(vocab_size, n_embd)
         self.position_embedding = nn.Embedding(block_size, n_embd)

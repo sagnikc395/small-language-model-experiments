@@ -9,7 +9,6 @@ class TextDataset:
         self.level = level
         self.dir_path = dir_path
 
-        # Define paths based on your structure
         train_path = os.path.join(dir_path, "train.txt")
         val_path = os.path.join(dir_path, "valid.txt")
 
@@ -57,7 +56,7 @@ class TextDataset:
             self.val_data = self.train_data
 
     def _encode(self, tokens):
-        # Helper to encode tokens to integers, skipping unknowns
+        # Encode tokens to integers, skipping unknowns
         return torch.tensor(
             [self.stoi[t] for t in tokens if t in self.stoi], dtype=torch.long
         )

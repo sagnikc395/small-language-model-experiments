@@ -118,7 +118,7 @@ def estimate_loss(model, dataset, batch_size=32, eval_iters=50):
         X, Y = X.to(device), Y.to(device)
         _, loss = model(X, Y)
         losses[k] = loss.item()
-    model.train()  # Switch back to training mode
+    model.train()  # Switch back to training model
     return losses.mean().item()
 
 

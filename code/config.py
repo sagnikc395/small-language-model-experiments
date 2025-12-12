@@ -1,19 +1,13 @@
 # code/config.py
 
-# ==========================================
-# GLOBAL SETTINGS
-# ==========================================
 SYSTEM_CONFIG = {
-    "seed": 1337,
+    "seed": 6783,
     "work_dir": "../report_src",  # Where to save plots/text
     "data_dir": "../datasets",  # Root data folder
 }
 
-# ==========================================
-# DELIVERABLE 1: TINY SHAKESPEARE SWEEPS
-# ==========================================
 
-# --- 1. Linear Predictor (Context Length) ---
+# Linear Predictor (Context Length)
 LINEAR_CONTEXT_SWEEP = {
     "name": "Linear_Context_Sweep",
     "model_type": "linear",
@@ -28,9 +22,9 @@ LINEAR_CONTEXT_SWEEP = {
     "sweep_values": [8, 32, 64, 128, 256],
 }
 
-# --- 2. MLP Experiments (Width & Depth) ---
+# MLP Experiments (Width & Depth)
 
-# 2A. Varying Width (Hidden Size)
+# Varying Width (Hidden Size)
 MLP_WIDTH_SWEEP = {
     "name": "MLP_Width_Sweep",
     "model_type": "mlp",
@@ -47,7 +41,7 @@ MLP_WIDTH_SWEEP = {
     "sweep_values": [64, 128, 256, 512],
 }
 
-# 2B. Varying Depth (Number of Layers)
+#  Varying Depth (Number of Layers)
 MLP_DEPTH_SWEEP = {
     "name": "MLP_Depth_Sweep",
     "model_type": "mlp",
@@ -64,8 +58,7 @@ MLP_DEPTH_SWEEP = {
     "sweep_values": [2, 4, 8],
 }
 
-# --- 3. Attention-Only Model (No FeedForward) ---
-# Requirement: "Multi-head self-attention model... configurable heads"
+# Attention-Only Model (No FeedForward)
 ATTENTION_SWEEP = {
     "name": "AttentionOnly_Heads_Sweep",
     "model_type": "attention",
@@ -83,9 +76,9 @@ ATTENTION_SWEEP = {
     "sweep_values": [2, 4, 8],
 }
 
-# --- 4. Transformer Experiments (Heads & Depth) ---
+# Transformer Experiments (Heads & Depth)
 
-# 4A. Varying Heads
+# Varying Heads
 TRANSFORMER_HEADS_SWEEP = {
     "name": "Transformer_Heads_Sweep",
     "model_type": "transformer",
@@ -103,7 +96,7 @@ TRANSFORMER_HEADS_SWEEP = {
     "sweep_values": [2, 4, 8],
 }
 
-# 4B. Varying Depth
+# Varying Depth
 TRANSFORMER_DEPTH_SWEEP = {
     "name": "Transformer_Depth_Sweep",
     "model_type": "transformer",
@@ -121,9 +114,9 @@ TRANSFORMER_DEPTH_SWEEP = {
     "sweep_values": [1, 2, 4, 6],
 }
 
-# --- 5. Optimization Experiments ---
+# Optimization Experiments
 
-# 5A. Optimizer Choice (AdamW vs SGD)
+# Optimizer Choice (AdamW vs SGD)
 OPTIMIZER_SWEEP = {
     "name": "Optimizer_Sweep",
     "model_type": "transformer",
@@ -141,7 +134,7 @@ OPTIMIZER_SWEEP = {
     "sweep_values": ["adamw", "sgd"],
 }
 
-# 5B. Learning Rate Sweep
+# Learning Rate Sweep
 LR_SWEEP = {
     "name": "LearningRate_Sweep",
     "model_type": "transformer",
